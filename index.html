@@ -232,19 +232,30 @@
         .main-container {
             display: flex;
             height: calc(100vh - 70px);
+            overflow: hidden;
         }
 
-        .sidebar {
-            width: 300px;
-            border-right: 1px solid var(--border-color);
-            display: flex;
+        /* Styles pour les vues principales */
+        .view {
+            flex: 1;
+            display: none;
             flex-direction: column;
             overflow: hidden;
         }
 
-        .sidebar-header {
-            padding: 20px;
+        .view.active {
+            display: flex;
+        }
+
+        .view-header {
+            padding: 15px 20px;
             border-bottom: 1px solid var(--border-color);
+        }
+
+        .view-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
         }
 
         .search-container {
@@ -279,36 +290,18 @@
             font-size: 16px;
         }
 
-        .sidebar-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .tab {
-            flex: 1;
-            text-align: center;
-            padding: 15px 0;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .tab.active {
-            border-bottom: 3px solid var(--primary-color);
-            color: var(--primary-color);
-        }
-
-        .tab-content {
+        .view-content {
             flex: 1;
             overflow-y: auto;
             padding: 10px 0;
         }
 
-        .chat-list, .friends-list, .groups-list, .search-results, .notifications-list {
+        /* Styles pour les listes */
+        .chat-list, .friends-list, .groups-list, .calls-list, .settings-list {
             list-style: none;
         }
 
-        .chat-item, .friend-item, .group-item, .search-item, .notification-item {
+        .chat-item, .friend-item, .group-item, .call-item, .setting-item {
             padding: 15px 20px;
             display: flex;
             align-items: center;
@@ -317,7 +310,7 @@
             transition: background 0.2s;
         }
 
-        .chat-item:hover, .friend-item:hover, .group-item:hover, .search-item:hover, .notification-item:hover {
+        .chat-item:hover, .friend-item:hover, .group-item:hover, .call-item:hover, .setting-item:hover {
             background: var(--glass-bg);
         }
 
@@ -325,12 +318,12 @@
             background: var(--glass-bg);
         }
 
-        .chat-info, .friend-info, .group-info, .search-info, .notification-info {
+        .chat-info, .friend-info, .group-info, .call-info, .setting-info {
             flex: 1;
             overflow: hidden;
         }
 
-        .chat-name, .friend-name, .group-name, .search-name, .notification-text {
+        .chat-name, .friend-name, .group-name, .call-name, .setting-name {
             font-weight: 600;
             margin-bottom: 5px;
             white-space: nowrap;
@@ -338,7 +331,7 @@
             text-overflow: ellipsis;
         }
 
-        .last-message, .friend-status, .group-members, .search-email, .notification-time {
+        .last-message, .friend-status, .group-members, .call-details, .setting-description {
             font-size: 14px;
             color: var(--text-secondary);
             white-space: nowrap;
@@ -346,7 +339,7 @@
             text-overflow: ellipsis;
         }
 
-        .chat-time, .friend-last-seen {
+        .chat-time, .friend-last-seen, .call-time {
             font-size: 12px;
             color: var(--text-secondary);
         }
@@ -930,85 +923,10 @@
             color: var(--text-secondary);
         }
 
-        /* Barre de navigation mobile */
-        .mobile-nav {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: var(--card-bg);
-            border-top: 1px solid var(--border-color);
-            z-index: 100;
-        }
-
-        .mobile-nav-items {
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-        }
-
-        .mobile-nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 10px;
-            cursor: pointer;
-            color: var(--text-secondary);
-            font-size: 12px;
-        }
-
-        .mobile-nav-item.active {
-            color: var(--primary-color);
-        }
-
-        .mobile-nav-icon {
-            font-size: 20px;
-        }
-
         /* Styles responsifs */
         @media (max-width: 768px) {
-            .sidebar {
-                position: absolute;
-                left: 0;
-                top: 70px;
-                height: calc(100vh - 130px);
-                z-index: 100;
-                transform: translateX(-100%);
-                transition: transform 0.3s;
-                background: var(--bg-color);
-            }
-
-            .sidebar.active {
-                transform: translateX(0);
-            }
-
-            .menu-toggle {
-                display: block;
-                background: none;
-                border: none;
-                font-size: 20px;
-                color: var(--text-color);
-                cursor: pointer;
-            }
-
             .message {
                 max-width: 85%;
-            }
-
-            .mobile-nav {
-                display: block;
-            }
-
-            .main-container {
-                height: calc(100vh - 130px);
-            }
-        }
-
-        @media (min-width: 769px) {
-            .menu-toggle {
-                display: none;
             }
         }
 
@@ -1022,6 +940,98 @@
             font-size: 48px;
             margin-bottom: 15px;
             opacity: 0.5;
+        }
+
+        /* Barre de navigation mobile */
+        .mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .mobile-nav-tabs {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+        }
+
+        .mobile-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .mobile-tab.active {
+            color: var(--primary-color);
+        }
+
+        .mobile-tab i {
+            font-size: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                height: calc(100vh - 120px);
+            }
+            
+            .message-input-container {
+                padding-bottom: 80px;
+            }
+        }
+
+        /* Section d'invitations d'amis */
+        .friend-section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 15px 20px 10px;
+            color: var(--text-secondary);
+        }
+
+        /* Indicateur d'appel */
+        .call-indicator {
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .call-success {
+            color: var(--secondary-color);
+        }
+
+        .call-missed {
+            color: #F02849;
+        }
+
+        /* Bouton de création de groupe */
+        .create-group-btn {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            z-index: 99;
         }
     </style>
 </head>
@@ -1072,17 +1082,10 @@
     <!-- Tableau de bord principal -->
     <div id="dashboard" class="dashboard">
         <header class="header glass">
-            <button class="menu-toggle">
-                <i class="fas fa-bars"></i>
-            </button>
             <div class="logo">PrivCon</div>
             <div class="header-controls">
                 <button class="theme-toggle">
                     <i class="fas fa-moon"></i>
-                </button>
-                <button class="notifications-btn" id="notifications-btn">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-badge" id="notification-badge" style="display: none;">0</span>
                 </button>
                 <div class="user-profile" id="user-profile">
                     <div class="profile-container">
@@ -1095,9 +1098,10 @@
         </header>
 
         <div class="main-container">
-            <!-- Barre latérale -->
-            <aside class="sidebar glass">
-                <div class="sidebar-header">
+            <!-- Vue Messages (Page d'accueil) -->
+            <div id="messages-view" class="view active">
+                <div class="view-header glass">
+                    <h2 class="view-title">Messages</h2>
                     <div class="search-container">
                         <i class="fas fa-search search-icon"></i>
                         <input type="text" class="search-input" id="search-input" placeholder="Rechercher des utilisateurs...">
@@ -1106,132 +1110,195 @@
                         </button>
                     </div>
                 </div>
-                
-                <div class="sidebar-tabs">
-                    <div class="tab active" data-tab="chats">Messages</div>
-                    <div class="tab" data-tab="friends">Amis</div>
-                    <div class="tab" data-tab="groups">Groupes</div>
-                    <div class="tab" data-tab="notifications">Notifications</div>
-                </div>
-                
-                <div class="tab-content">
-                    <!-- Liste des discussions -->
-                    <ul class="chat-list" id="chat-list" style="display: block;">
+                <div class="view-content">
+                    <ul class="chat-list" id="chat-list">
                         <div class="empty-state">
                             <i class="fas fa-comments"></i>
                             <p>Aucune conversation</p>
                         </div>
                     </ul>
-                    
-                    <!-- Liste d'amis -->
-                    <ul class="friends-list" id="friends-list" style="display: none;">
-                        <div class="empty-state">
-                            <i class="fas fa-users"></i>
-                            <p>Aucun ami</p>
-                        </div>
-                    </ul>
-                    
-                    <!-- Liste des groupes -->
-                    <ul class="groups-list" id="groups-list" style="display: none;">
+                </div>
+            </div>
+
+            <!-- Vue Amis -->
+            <div id="friends-view" class="view">
+                <div class="view-header glass">
+                    <h2 class="view-title">Amis</h2>
+                </div>
+                <div class="view-content">
+                    <div class="friend-section">
+                        <h3 class="section-title">Amis confirmés</h3>
+                        <ul class="friends-list" id="friends-list">
+                            <div class="empty-state">
+                                <i class="fas fa-users"></i>
+                                <p>Aucun ami</p>
+                            </div>
+                        </ul>
+                    </div>
+                    <div class="friend-section">
+                        <h3 class="section-title">Invitations reçues</h3>
+                        <ul class="friends-list" id="friend-requests-list">
+                            <div class="empty-state">
+                                <i class="fas fa-user-clock"></i>
+                                <p>Aucune invitation</p>
+                            </div>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vue Groupes -->
+            <div id="groups-view" class="view">
+                <div class="view-header glass">
+                    <h2 class="view-title">Groupes</h2>
+                </div>
+                <div class="view-content">
+                    <ul class="groups-list" id="groups-list">
                         <div class="empty-state">
                             <i class="fas fa-user-friends"></i>
                             <p>Aucun groupe</p>
                         </div>
                     </ul>
-                    
-                    <!-- Résultats de recherche -->
-                    <ul class="search-results" id="search-results" style="display: none;">
-                        <div class="empty-state">
-                            <i class="fas fa-search"></i>
-                            <p>Recherchez des utilisateurs</p>
-                        </div>
-                    </ul>
-                    
-                    <!-- Liste des notifications -->
-                    <ul class="notifications-list" id="notifications-list" style="display: none;">
-                        <div class="empty-state">
-                            <i class="fas fa-bell"></i>
-                            <p>Aucune notification</p>
-                        </div>
-                    </ul>
                 </div>
-            </aside>
+                <button class="create-group-btn" id="create-group-btn">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
 
-            <!-- Zone de chat principale -->
-            <main class="chat-area">
-                <div class="chat-header glass">
-                    <div class="profile-container">
-                        <img src="" alt="Photo de profil" class="profile-pic" id="chat-user-pic">
-                        <div class="online-indicator" id="chat-online-indicator"></div>
+            <!-- Vue Appels -->
+            <div id="calls-view" class="view">
+                <div class="view-header glass">
+                    <h2 class="view-title">Appels</h2>
+                </div>
+                <div class="view-content">
+                    <ul class="calls-list" id="calls-list">
+                        <div class="empty-state">
+                            <i class="fas fa-phone"></i>
+                            <p>Aucun appel récent</p>
+                        </div>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Vue Paramètres -->
+            <div id="settings-view" class="view">
+                <div class="view-header glass">
+                    <h2 class="view-title">Paramètres</h2>
+                </div>
+                <div class="view-content">
+                    <ul class="settings-list" id="settings-list">
+                        <li class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-name">Mon profil</div>
+                                <div class="setting-description">Gérer vos informations personnelles</div>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </li>
+                        <li class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-name">Notifications</div>
+                                <div class="setting-description">Gérer les notifications de l'application</div>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </li>
+                        <li class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-name">Confidentialité</div>
+                                <div class="setting-description">Contrôler qui peut vous voir</div>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </li>
+                        <li class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-name">Aide</div>
+                                <div class="setting-description">Centre d'aide et support</div>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </li>
+                        <li class="setting-item" id="logout-setting">
+                            <div class="setting-info">
+                                <div class="setting-name">Déconnexion</div>
+                                <div class="setting-description">Se déconnecter de votre compte</div>
+                            </div>
+                            <i class="fas fa-sign-out-alt"></i>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Zone de chat principale (cachée par défaut) -->
+            <div id="chat-view" class="view">
+                <div class="chat-area">
+                    <div class="chat-header glass">
+                        <div class="profile-container">
+                            <img src="" alt="Photo de profil" class="profile-pic" id="chat-user-pic">
+                            <div class="online-indicator" id="chat-online-indicator"></div>
+                        </div>
+                        <div class="chat-user-info">
+                            <div class="chat-user-name" id="chat-user-name">Sélectionnez une conversation</div>
+                            <div class="chat-user-status" id="chat-user-status">En ligne</div>
+                        </div>
+                        <div class="chat-actions">
+                            <button class="chat-action-btn" id="audio-call-btn">
+                                <i class="fas fa-phone-alt"></i>
+                            </button>
+                            <button class="chat-action-btn" id="video-call-btn">
+                                <i class="fas fa-video"></i>
+                            </button>
+                            <button class="chat-action-btn" id="show-profile-modal">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="chat-user-info">
-                        <div class="chat-user-name" id="chat-user-name">Sélectionnez une conversation</div>
-                        <div class="chat-user-status" id="chat-user-status">En ligne</div>
+                    
+                    <div class="messages-container" id="messages-container">
+                        <div class="welcome-message">
+                            <p>Sélectionnez une conversation pour commencer à discuter</p>
+                        </div>
                     </div>
-                    <div class="chat-actions">
-                        <button class="chat-action-btn" id="audio-call-btn">
-                            <i class="fas fa-phone-alt"></i>
+                    
+                    <div class="message-input-container glass">
+                        <button class="attachment-btn" id="attachment-btn">
+                            <i class="fas fa-paperclip"></i>
                         </button>
-                        <button class="chat-action-btn" id="video-call-btn">
-                            <i class="fas fa-video"></i>
+                        <input type="file" id="file-input" style="display: none;" accept="image/*,video/*">
+                        
+                        <div class="recording-indicator" id="recording-indicator">
+                            <div class="recording-dot"></div>
+                            <span>Enregistrement en cours...</span>
+                        </div>
+                        
+                        <textarea class="message-input" id="message-input" placeholder="Tapez votre message..." rows="1"></textarea>
+                        
+                        <button class="mic-btn" id="mic-btn">
+                            <i class="fas fa-microphone"></i>
                         </button>
-                        <button class="chat-action-btn" id="show-profile-modal">
-                            <i class="fas fa-info-circle"></i>
+                        <button class="send-btn" id="send-btn">
+                            <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
                 </div>
-                
-                <div class="messages-container" id="messages-container">
-                    <div class="welcome-message">
-                        <p>Sélectionnez une conversation pour commencer à discuter</p>
-                    </div>
-                </div>
-                
-                <div class="message-input-container glass">
-                    <button class="attachment-btn" id="attachment-btn">
-                        <i class="fas fa-paperclip"></i>
-                    </button>
-                    <input type="file" id="file-input" style="display: none;" accept="image/*,video/*,audio/*">
-                    
-                    <div class="recording-indicator" id="recording-indicator">
-                        <div class="recording-dot"></div>
-                        <span>Enregistrement en cours...</span>
-                    </div>
-                    
-                    <textarea class="message-input" id="message-input" placeholder="Tapez votre message..." rows="1"></textarea>
-                    
-                    <button class="mic-btn" id="mic-btn">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                    <button class="send-btn" id="send-btn">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </div>
-            </main>
+            </div>
         </div>
-
+        
         <!-- Barre de navigation mobile -->
-        <nav class="mobile-nav glass">
-            <div class="mobile-nav-items">
-                <div class="mobile-nav-item active" data-tab="chats">
-                    <i class="fas fa-comments mobile-nav-icon"></i>
+        <nav class="mobile-nav">
+            <div class="mobile-nav-tabs">
+                <div class="mobile-tab active" data-view="calls-view">
+                    <i class="fas fa-phone"></i>
+                    <span>Appels</span>
+                </div>
+                <div class="mobile-tab" data-view="messages-view">
+                    <i class="fas fa-comments"></i>
                     <span>Messages</span>
                 </div>
-                <div class="mobile-nav-item" data-tab="friends">
-                    <i class="fas fa-users mobile-nav-icon"></i>
-                    <span>Amis</span>
-                </div>
-                <div class="mobile-nav-item" data-tab="groups">
-                    <i class="fas fa-user-friends mobile-nav-icon"></i>
+                <div class="mobile-tab" data-view="groups-view">
+                    <i class="fas fa-user-friends"></i>
                     <span>Groupes</span>
                 </div>
-                <div class="mobile-nav-item" data-tab="notifications">
-                    <i class="fas fa-bell mobile-nav-icon"></i>
-                    <span>Notifications</span>
-                </div>
-                <div class="mobile-nav-item" id="mobile-profile-btn">
-                    <i class="fas fa-user mobile-nav-icon"></i>
-                    <span>Profil</span>
+                <div class="mobile-tab" data-view="settings-view">
+                    <i class="fas fa-cog"></i>
+                    <span>Paramètres</span>
                 </div>
             </div>
         </nav>
@@ -1241,7 +1308,7 @@
     <div id="profile-modal" class="modal">
         <div class="modal-content glass">
             <div class="modal-header">
-                <h2 class="modal-title">Profil Utilisateur</h2>
+                <h2 class="modal-title">Mon Profil</h2>
                 <button class="close-modal">&times;</button>
             </div>
             <div class="modal-body">
@@ -1273,7 +1340,7 @@
         </div>
     </div>
 
-    <!-- Modale de profil détaillé -->
+    <!-- Modale de profil détaillé (pour les autres utilisateurs) -->
     <div id="user-details-modal" class="modal">
         <div class="modal-content glass">
             <div class="modal-header">
@@ -1310,6 +1377,40 @@
                 <button class="btn btn-primary" id="add-friend-btn">Ajouter en ami</button>
                 <button class="btn btn-secondary" id="accept-friend-btn" style="display: none;">Accepter l'invitation</button>
                 <button class="btn" id="pending-friend-btn" style="display: none;">Invitation envoyée</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale de création de groupe -->
+    <div id="create-group-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2 class="modal-title">Créer un groupe</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="group-name">Nom du groupe</label>
+                    <input type="text" id="group-name" placeholder="Nom du groupe">
+                </div>
+                <div class="form-group">
+                    <label for="group-description">Description</label>
+                    <textarea id="group-description" placeholder="Description du groupe" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="group-image">Image du groupe (optionnel)</label>
+                    <input type="file" id="group-image" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label for="group-members">Ajouter des membres</label>
+                    <div id="friends-select-container">
+                        <!-- Les amis seront chargés ici dynamiquement -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="cancel-group-btn">Annuler</button>
+                <button class="btn btn-primary" id="create-group-btn">Créer</button>
             </div>
         </div>
     </div>
@@ -1353,6 +1454,7 @@
                 <button class="filter-btn" data-filter="normal">Normal</button>
                 <button class="filter-btn" data-filter="grayscale">Noir & Blanc</button>
                 <button class="filter-btn" data-filter="sepia">Sépia</button>
+                <button class="filter-btn" data-filter="crop">Recadrer</button>
             </div>
             <div class="modal-footer">
                 <button class="btn" id="cancel-media-btn">Annuler</button>
@@ -1371,7 +1473,7 @@
         </div>
         <div class="call-controls">
             <button class="call-btn call-mute" id="call-mute-btn">
-                <i class="fas fa-microphone"></i>
+                <i class="fas fa-microphone-slash"></i>
             </button>
             <button class="call-btn call-end" id="call-end-btn">
                 <i class="fas fa-phone-slash"></i>
@@ -1403,50 +1505,183 @@
 
     <script>
         // =====================================================
-        // RÈGLES DE SÉCURITÉ FIRESTORE (À COPIER DANS LA CONSOLE FIREBASE)
+        // RÈGLES DE SÉCURITÉ FIRESTORE
         // =====================================================
         /*
         rules_version = '2';
         service cloud.firestore {
           match /databases/{database}/documents {
-            // Règles pour les utilisateurs
+
+            // 1. Profils (Lecture publique pour la recherche, Écriture privée)
             match /users/{userId} {
-              allow read: if true;
-              allow write: if request.auth != null && request.auth.uid == userId;
+              allow read: if true; // Tout le monde peut lire les profils (pour la recherche)
+              allow create: if request.auth != null && request.auth.uid == userId;
+              allow update, delete: if request.auth != null && request.auth.uid == userId;
+              
+              // Validation des données utilisateur
+              allow write: if (
+                request.auth != null && 
+                request.auth.uid == userId &&
+                request.resource.data.keys().hasAll(['uid', 'username', 'email']) &&
+                request.resource.data.uid == userId &&
+                request.resource.data.username is string &&
+                request.resource.data.username.size() >= 2 &&
+                request.resource.data.username.size() <= 30 &&
+                request.resource.data.email is string &&
+                request.resource.data.email.matches('^[^@]+@[^@]+\\.[^@]+$')
+              );
             }
-            
-            // Règles pour les conversations
+
+            // 2. Collection des chats
             match /chats/{chatId} {
-              allow read, write: if request.auth != null && 
-                request.auth.uid in resource.data.participants;
-              allow create: if request.auth != null && 
-                request.auth.uid in request.resource.data.participants;
+              // Seuls les participants peuvent lire et écrire
+              allow read, write: if (
+                request.auth != null && 
+                request.auth.uid in resource.data.participants
+              );
+              
+              // Validation pour la création
+              allow create: if (
+                request.auth != null &&
+                request.resource.data.participants is list &&
+                request.resource.data.participants.size() == 2 &&
+                request.auth.uid in request.resource.data.participants
+              );
             }
-            
-            // Règles pour les messages
+
+            // 3. Sous-collection des messages dans les chats
             match /chats/{chatId}/messages/{messageId} {
-              allow read, write: if request.auth != null && 
-                request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+              // Seuls les participants du chat parent peuvent lire et écrire
+              allow read, write: if (
+                request.auth != null && 
+                exists(/databases/$(database)/documents/chats/$(chatId)) &&
+                request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+              );
+              
+              // Validation des messages
+              allow create: if (
+                request.auth != null &&
+                request.resource.data.senderId == request.auth.uid &&
+                request.resource.data.timestamp is timestamp
+              );
             }
-            
-            // Règles pour les demandes d'amis
+
+            // 4. Collection des demandes d'amis
             match /friend_requests/{requestId} {
-              allow read, write: if request.auth != null && 
-                (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
-              allow create: if request.auth != null && 
-                (request.auth.uid == request.resource.data.from);
+              // Seuls les utilisateurs concernés peuvent lire et écrire
+              allow read: if (
+                request.auth != null && 
+                (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to)
+              );
+              
+              allow create: if (
+                request.auth != null &&
+                request.auth.uid == request.resource.data.from &&
+                request.resource.data.from != request.resource.data.to &&
+                request.resource.data.status == 'pending' &&
+                request.resource.data.timestamp is timestamp
+              );
+              
+              allow update: if (
+                request.auth != null &&
+                (
+                  (request.auth.uid == resource.data.to && 
+                   request.resource.data.status == 'accepted' &&
+                   resource.data.status == 'pending') ||
+                  (request.auth.uid == resource.data.from &&
+                   request.resource.data.status == 'cancelled' &&
+                   resource.data.status == 'pending')
+                )
+              );
             }
-            
-            // Règles pour les notifications
+
+            // 5. Collection des notifications
             match /notifications/{notificationId} {
-              allow read, write: if request.auth != null && 
-                request.auth.uid == resource.data.toId;
-              allow create: if request.auth != null;
+              // Seul le destinataire peut lire
+              allow read: if (
+                request.auth != null && 
+                request.auth.uid == resource.data.toId
+              );
+              
+              // Seul l'expéditeur peut créer (pour les notifications d'amis, messages, etc.)
+              allow create: if (
+                request.auth != null &&
+                request.auth.uid == request.resource.data.fromId &&
+                request.resource.data.toId is string &&
+                request.resource.data.toId != request.auth.uid &&
+                request.resource.data.type in ['friend_request', 'friend_accepted', 'message', 'call'] &&
+                request.resource.data.isRead is bool &&
+                request.resource.data.timestamp is timestamp
+              );
+              
+              // Seul le destinataire peut mettre à jour (marquer comme lu)
+              allow update: if (
+                request.auth != null &&
+                request.auth.uid == resource.data.toId &&
+                request.resource.data.isRead == true &&
+                request.resource.data.keys().hasAll(['isRead'])
+              );
+              
+              // Seul le destinataire peut supprimer
+              allow delete: if (
+                request.auth != null &&
+                request.auth.uid == resource.data.toId
+              );
             }
-            
-            // Règles pour les appels
+
+            // 6. Collection des appels (signalisation WebRTC)
             match /calls/{callId} {
-              allow read, write: if request.auth != null;
+              // Les participants peuvent lire et écrire
+              allow read, write: if (
+                request.auth != null && 
+                (
+                  request.auth.uid == resource.data.from ||
+                  request.auth.uid == resource.data.to ||
+                  request.auth.uid == request.resource.data.from ||
+                  request.auth.uid == request.resource.data.to
+                )
+              );
+              
+              // Validation pour la création d'appel
+              allow create: if (
+                request.auth != null &&
+                request.auth.uid == request.resource.data.from &&
+                request.resource.data.to is string &&
+                request.resource.data.to != request.auth.uid &&
+                request.resource.data.type in ['audio', 'video'] &&
+                request.resource.data.status == 'ringing' &&
+                request.resource.data.timestamp is timestamp
+              );
+              
+              // Validation pour les mises à jour d'appel
+              allow update: if (
+                request.auth != null &&
+                request.resource.data.status in ['accepted', 'declined', 'ended', 'cancelled']
+              );
+            }
+
+            // 7. Collection des groupes (extension future)
+            match /groups/{groupId} {
+              // Seuls les membres peuvent lire et écrire
+              allow read, write: if (
+                request.auth != null && 
+                request.auth.uid in resource.data.members
+              );
+              
+              allow create: if (
+                request.auth != null &&
+                request.auth.uid in request.resource.data.members &&
+                request.resource.data.createdBy == request.auth.uid
+              );
+            }
+
+            // 8. Sous-collection des messages de groupe
+            match /groups/{groupId}/messages/{messageId} {
+              allow read, write: if (
+                request.auth != null && 
+                exists(/databases/$(database)/documents/groups/$(groupId)) &&
+                request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members
+              );
             }
           }
         }
@@ -1473,14 +1708,14 @@
         const CONST_CLOUDINARY_PRESET = "privcon_upload"; // Upload preset non signé
 
         // Configuration STUN (WebRTC)
-        const STUN_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
+        const CONST_STUN_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
 
         // =====================================================
         // INITIALISATION
         // =====================================================
 
         // Initialisation de Firebase
-        firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp(CONST_FIREBASE_CONFIG);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
@@ -1488,6 +1723,7 @@
         let peer = null;
         let currentCall = null;
         let localStream = null;
+        let currentCallData = null;
 
         // État de l'application
         let currentUser = null;
@@ -1502,7 +1738,8 @@
         let lastX = 0;
         let lastY = 0;
         let notificationsCount = 0;
-        let friendshipListener = null;
+        let friendRequestListener = null;
+        let currentSearchResults = [];
 
         // Éléments DOM
         const authContainer = document.getElementById('auth-container');
@@ -1515,20 +1752,20 @@
         const registerBtn = document.getElementById('register-btn');
         const googleLoginBtn = document.getElementById('google-login-btn');
         const themeToggle = document.querySelector('.theme-toggle');
-        const notificationsBtn = document.getElementById('notifications-btn');
-        const notificationBadge = document.getElementById('notification-badge');
         const userProfile = document.getElementById('user-profile');
         const userProfilePic = document.getElementById('user-profile-pic');
         const userName = document.getElementById('user-name');
         const onlineIndicator = document.getElementById('online-indicator');
         const searchInput = document.getElementById('search-input');
         const searchBtn = document.getElementById('search-btn');
-        const tabs = document.querySelectorAll('.tab');
+        const views = document.querySelectorAll('.view');
+        const mobileNavTabs = document.querySelectorAll('.mobile-tab');
         const chatList = document.getElementById('chat-list');
         const friendsList = document.getElementById('friends-list');
+        const friendRequestsList = document.getElementById('friend-requests-list');
         const groupsList = document.getElementById('groups-list');
-        const searchResults = document.getElementById('search-results');
-        const notificationsList = document.getElementById('notifications-list');
+        const callsList = document.getElementById('calls-list');
+        const settingsList = document.getElementById('settings-list');
         const chatUserName = document.getElementById('chat-user-name');
         const chatUserPic = document.getElementById('chat-user-pic');
         const chatUserStatus = document.getElementById('chat-user-status');
@@ -1564,9 +1801,15 @@
         const addFriendBtn = document.getElementById('add-friend-btn');
         const acceptFriendBtn = document.getElementById('accept-friend-btn');
         const pendingFriendBtn = document.getElementById('pending-friend-btn');
+        const createGroupBtn = document.getElementById('create-group-btn');
+        const createGroupModal = document.getElementById('create-group-modal');
+        const groupName = document.getElementById('group-name');
+        const groupDescription = document.getElementById('group-description');
+        const groupImage = document.getElementById('group-image');
+        const friendsSelectContainer = document.getElementById('friends-select-container');
+        const cancelGroupBtn = document.getElementById('cancel-group-btn');
+        const createGroupModalBtn = document.getElementById('create-group-btn');
         const notification = document.getElementById('notification');
-        const menuToggle = document.querySelector('.menu-toggle');
-        const sidebar = document.querySelector('.sidebar');
         const voiceRecordingOverlay = document.getElementById('voice-recording-overlay');
         const voiceRecordingText = document.getElementById('voice-recording-text');
         const voiceRecordingLock = document.getElementById('voice-recording-lock');
@@ -1593,8 +1836,7 @@
         const acceptCallBtn = document.getElementById('accept-call-btn');
         const incomingCallUser = document.getElementById('incoming-call-user');
         const incomingCallType = document.getElementById('incoming-call-type');
-        const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
-        const mobileProfileBtn = document.getElementById('mobile-profile-btn');
+        const logoutSetting = document.getElementById('logout-setting');
 
         // Initialisation de l'application
         document.addEventListener('DOMContentLoaded', initApp);
@@ -1610,9 +1852,9 @@
             // Gestionnaires d'événements pour le thème
             themeToggle.addEventListener('click', toggleTheme);
             
-            // Gestionnaires d'événements pour les onglets
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            // Gestionnaires d'événements pour la navigation mobile
+            mobileNavTabs.forEach(tab => {
+                tab.addEventListener('click', () => switchView(tab.dataset.view));
             });
             
             // Gestionnaires d'événements pour la messagerie
@@ -1679,21 +1921,15 @@
             
             saveProfileBtn.addEventListener('click', saveProfile);
             logoutBtn.addEventListener('click', logout);
+            logoutSetting.addEventListener('click', logout);
             sendMessageBtn.addEventListener('click', sendMessageFromProfile);
             addFriendBtn.addEventListener('click', addFriendFromProfile);
             acceptFriendBtn.addEventListener('click', acceptFriendFromProfile);
-            notificationsBtn.addEventListener('click', () => switchTab('notifications'));
             
-            // Gestionnaire d'événement pour le menu mobile
-            menuToggle.addEventListener('click', toggleSidebar);
-            
-            // Gestionnaire d'événements pour la navigation mobile
-            mobileNavItems.forEach(item => {
-                if (item.dataset.tab) {
-                    item.addEventListener('click', () => switchTab(item.dataset.tab));
-                }
-            });
-            mobileProfileBtn.addEventListener('click', showProfileModal);
+            // Gestionnaires d'événements pour les groupes
+            createGroupBtn.addEventListener('click', showCreateGroupModal);
+            cancelGroupBtn.addEventListener('click', closeAllModals);
+            createGroupModalBtn.addEventListener('click', createGroup);
             
             // Écouteur pour la déconnexion
             window.addEventListener('beforeunload', () => {
@@ -1736,7 +1972,7 @@
         }
 
         // =====================================================
-        // FONCTIONS D'AUTHENTIFICATION
+        // FONCTIONS D'AUTHENTIFICATION (CORRIGÉES)
         // =====================================================
 
         function showRegisterForm() {
@@ -1781,6 +2017,7 @@
                 .then((userCredential) => {
                     const user = userCredential.user;
                     
+                    // CORRECTION: Utiliser set() avec merge: true pour créer ou mettre à jour le profil
                     return db.collection('users').doc(user.uid).set({
                         uid: user.uid,
                         username: username,
@@ -1808,6 +2045,7 @@
                 .then((result) => {
                     const user = result.user;
                     
+                    // CORRECTION: Utiliser set() avec merge: true pour créer ou mettre à jour le profil
                     return db.collection('users').doc(user.uid).set({
                         uid: user.uid,
                         username: user.displayName || user.email.split('@')[0],
@@ -1855,6 +2093,8 @@
         function showDashboard() {
             authContainer.style.display = 'none';
             dashboard.style.display = 'block';
+            // Afficher la vue Messages par défaut
+            switchView('messages-view');
         }
 
         function toggleTheme() {
@@ -1871,49 +2111,61 @@
             }
         }
 
-        function switchTab(tabName) {
-            // Mettre à jour les onglets actifs
-            tabs.forEach(tab => {
-                if (tab.dataset.tab === tabName) {
+        function switchView(viewId) {
+            // Masquer toutes les vues
+            views.forEach(view => {
+                view.classList.remove('active');
+            });
+            
+            // Afficher la vue sélectionnée
+            document.getElementById(viewId).classList.add('active');
+            
+            // Mettre à jour les onglets mobiles
+            mobileNavTabs.forEach(tab => {
+                if (tab.dataset.view === viewId) {
                     tab.classList.add('active');
                 } else {
                     tab.classList.remove('active');
                 }
             });
             
-            // Mettre à jour la navigation mobile
-            mobileNavItems.forEach(item => {
-                if (item.dataset.tab === tabName) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
-            
-            // Afficher le contenu approprié
-            document.querySelectorAll('.tab-content > *').forEach(content => {
-                content.style.display = 'none';
-            });
-            
-            if (tabName === 'chats') {
-                chatList.style.display = 'block';
-            } else if (tabName === 'friends') {
-                friendsList.style.display = 'block';
+            // Charger les données spécifiques à la vue
+            if (viewId === 'friends-view') {
                 loadFriendsList();
-            } else if (tabName === 'groups') {
-                groupsList.style.display = 'block';
-            } else if (tabName === 'notifications') {
-                notificationsList.style.display = 'block';
-                loadNotifications();
+                loadFriendRequests();
+            } else if (viewId === 'groups-view') {
+                loadGroupsList();
+            } else if (viewId === 'calls-view') {
+                loadCallsList();
             }
         }
 
-        function toggleSidebar() {
-            sidebar.classList.toggle('active');
+        function showChatView() {
+            // Masquer toutes les vues
+            views.forEach(view => {
+                view.classList.remove('active');
+            });
+            
+            // Afficher la vue de chat
+            document.getElementById('chat-view').classList.add('active');
+            
+            // Masquer la barre de navigation mobile
+            document.querySelector('.mobile-nav').style.display = 'none';
+        }
+
+        function hideChatView() {
+            // Masquer la vue de chat
+            document.getElementById('chat-view').classList.remove('active');
+            
+            // Afficher la barre de navigation mobile
+            document.querySelector('.mobile-nav').style.display = 'block';
+            
+            // Revenir à la vue Messages
+            switchView('messages-view');
         }
 
         // =====================================================
-        // FONCTIONS DE GESTION DES UTILISATEURS
+        // FONCTIONS DE GESTION DES UTILISATEURS (CORRIGÉES)
         // =====================================================
 
         function setupUserData() {
@@ -1948,6 +2200,7 @@
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp()
             };
             
+            // CORRECTION: Utiliser set() avec merge pour éviter "No document to update"
             db.collection('users').doc(currentUser.uid).set(statusUpdate, { merge: true })
                 .catch(error => {
                     console.error('Erreur lors de la mise à jour du statut:', error);
@@ -1987,6 +2240,7 @@
                         showNotification('Erreur lors de la mise à jour du profil: ' + error.message, 'error');
                     });
             } else {
+                // CORRECTION: Utiliser set() avec merge pour éviter "No document to update"
                 db.collection('users').doc(currentUser.uid).set(updates, { merge: true })
                     .then(() => {
                         showNotification('Profil mis à jour avec succès', 'success');
@@ -2000,7 +2254,7 @@
         }
 
         // =====================================================
-        // FONCTIONS DE RECHERCHE ET D'AMITIÉ
+        // FONCTIONS DE RECHERCHE ET D'AMITIÉ (CORRIGÉES)
         // =====================================================
 
         function performSearch() {
@@ -2011,9 +2265,8 @@
                 return;
             }
             
-            // Afficher les résultats de recherche
-            switchTab('search');
-            searchResults.innerHTML = '';
+            // Afficher les résultats de recherche dans la liste des messages
+            chatList.innerHTML = '';
             
             // Recherche par préfixe insensible à la casse avec caractère Unicode
             db.collection('users')
@@ -2022,7 +2275,7 @@
                 .get()
                 .then(snapshot => {
                     if (snapshot.empty) {
-                        searchResults.innerHTML = `
+                        chatList.innerHTML = `
                             <div class="empty-state">
                                 <i class="fas fa-search"></i>
                                 <p>Aucun utilisateur trouvé</p>
@@ -2031,20 +2284,24 @@
                         return;
                     }
                     
+                    currentSearchResults = [];
+                    
                     snapshot.forEach(doc => {
                         const user = doc.data();
                         if (user.uid === currentUser.uid) return; // Ne pas afficher l'utilisateur courant
                         
+                        currentSearchResults.push(user);
+                        
                         const searchItem = document.createElement('li');
-                        searchItem.className = 'search-item';
+                        searchItem.className = 'chat-item';
                         searchItem.innerHTML = `
                             <div class="profile-container">
                                 <img src="${user.photoURL || 'https://via.placeholder.com/50'}" alt="Photo de profil" class="profile-pic">
                                 <div class="online-indicator" style="background-color: ${user.isOnline ? '#42B72A' : '#65676B'}"></div>
                             </div>
-                            <div class="search-info">
-                                <div class="search-name">${user.username}</div>
-                                <div class="search-email">${user.email}</div>
+                            <div class="chat-info">
+                                <div class="chat-name">${user.username}</div>
+                                <div class="last-message">${user.email}</div>
                             </div>
                         `;
                         
@@ -2052,7 +2309,7 @@
                             showUserDetails(user);
                         });
                         
-                        searchResults.appendChild(searchItem);
+                        chatList.appendChild(searchItem);
                     });
                 })
                 .catch(error => {
@@ -2069,7 +2326,7 @@
             userDetailsJoined.textContent = user.dateJoined ? user.dateJoined.toDate().toLocaleDateString() : 'Date inconnue';
             userDetailsStatus.textContent = user.isOnline ? 'En ligne' : 'Hors ligne';
             
-            // Vérifier l'état de la relation d'amitié
+            // CORRECTION: Vérifier l'état de la relation d'amitié avec un écouteur en temps réel
             checkFriendshipStatus(currentUser.uid, user.uid);
             
             userDetailsModal.style.display = 'flex';
@@ -2080,14 +2337,15 @@
             addFriendBtn.style.display = 'none';
             acceptFriendBtn.style.display = 'none';
             pendingFriendBtn.style.display = 'none';
+            sendMessageBtn.style.display = 'none';
             
             // Arrêter l'écouteur précédent s'il existe
-            if (friendshipListener) {
-                friendshipListener();
+            if (friendRequestListener) {
+                friendRequestListener();
             }
             
-            // Écouter en temps réel les changements de statut d'amitié
-            friendshipListener = db.collection('friend_requests')
+            // Vérifier s'il existe une demande d'amitié entre ces utilisateurs
+            friendRequestListener = db.collection('friend_requests')
                 .where('from', 'in', [userA, userB])
                 .where('to', 'in', [userA, userB])
                 .onSnapshot(snapshot => {
@@ -2096,37 +2354,32 @@
                         addFriendBtn.style.display = 'block';
                         acceptFriendBtn.style.display = 'none';
                         pendingFriendBtn.style.display = 'none';
+                        sendMessageBtn.style.display = 'none';
                     } else {
-                        let hasPendingRequest = false;
-                        let isCurrentUserSender = false;
-                        
                         snapshot.forEach(doc => {
                             const request = doc.data();
                             if (request.status === 'pending') {
-                                hasPendingRequest = true;
-                                isCurrentUserSender = request.from === currentUser.uid;
+                                if (request.from === currentUser.uid) {
+                                    // L'utilisateur actuel a envoyé une demande en attente
+                                    addFriendBtn.style.display = 'none';
+                                    acceptFriendBtn.style.display = 'none';
+                                    pendingFriendBtn.style.display = 'block';
+                                    sendMessageBtn.style.display = 'none';
+                                } else {
+                                    // L'utilisateur actuel a reçu une demande en attente
+                                    addFriendBtn.style.display = 'none';
+                                    acceptFriendBtn.style.display = 'block';
+                                    pendingFriendBtn.style.display = 'none';
+                                    sendMessageBtn.style.display = 'none';
+                                }
                             } else if (request.status === 'accepted') {
-                                // Ils sont déjà amis
+                                // Ils sont déjà amis - afficher "Envoyer message"
                                 addFriendBtn.style.display = 'none';
                                 acceptFriendBtn.style.display = 'none';
                                 pendingFriendBtn.style.display = 'none';
-                                return;
+                                sendMessageBtn.style.display = 'block';
                             }
                         });
-                        
-                        if (hasPendingRequest) {
-                            if (isCurrentUserSender) {
-                                // L'utilisateur actuel a envoyé une demande en attente
-                                pendingFriendBtn.style.display = 'block';
-                                addFriendBtn.style.display = 'none';
-                                acceptFriendBtn.style.display = 'none';
-                            } else {
-                                // L'utilisateur actuel a reçu une demande en attente
-                                acceptFriendBtn.style.display = 'block';
-                                addFriendBtn.style.display = 'none';
-                                pendingFriendBtn.style.display = 'none';
-                            }
-                        }
                     }
                 }, error => {
                     console.error('Erreur lors de la vérification de l\'état d\'amitié:', error);
@@ -2134,35 +2387,35 @@
         }
 
         function sendMessageFromProfile() {
-            const targetUserId = document.getElementById('user-details-email').getAttribute('data-uid');
-            const targetUserName = document.getElementById('user-details-name').textContent;
+            const userDetailsName = document.getElementById('user-details-name').textContent;
+            const userDetailsId = userDetailsEmail.textContent; // En réalité, nous devrions stocker l'ID utilisateur
             
             // Fermer la modale
             closeAllModals();
             
-            // Ouvrir une conversation avec cet utilisateur
-            openChat(targetUserId, targetUserName);
+            // CORRECTION: Créer ou ouvrir un chat avec cet utilisateur
+            openChatWithUser(userDetailsId, userDetailsName);
         }
 
         function addFriendFromProfile() {
-            const targetUserId = document.getElementById('user-details-email').getAttribute('data-uid');
-            const targetUserName = document.getElementById('user-details-name').textContent;
+            const userDetailsName = document.getElementById('user-details-name').textContent;
+            const userDetailsId = userDetailsEmail.textContent; // En réalité, nous devrions stocker l'ID utilisateur
             
             // Créer une demande d'amitié
             db.collection('friend_requests').add({
                 from: currentUser.uid,
-                to: targetUserId,
+                to: userDetailsId, // Ici, nous devrions utiliser l'ID réel de l'utilisateur
                 status: 'pending',
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             })
             .then(() => {
-                showNotification(`Demande d'ami envoyée à ${targetUserName}`, 'success');
+                showNotification(`Demande d'ami envoyée à ${userDetailsName}`, 'success');
                 
                 // Créer une notification pour l'utilisateur cible
                 createNotification(
-                    targetUserId,
+                    userDetailsId,
                     'friend_request',
-                    `${userName.textContent} vous a envoyé une invitation d'amitié`,
+                    `${currentUser.displayName || currentUser.email} vous a envoyé une invitation d'amitié`,
                     currentUser.uid
                 );
             })
@@ -2172,39 +2425,34 @@
         }
 
         function acceptFriendFromProfile() {
-            const targetUserId = document.getElementById('user-details-email').getAttribute('data-uid');
-            const targetUserName = document.getElementById('user-details-name').textContent;
+            const userDetailsName = document.getElementById('user-details-name').textContent;
+            const userDetailsId = userDetailsEmail.textContent; // En réalité, nous devrions stocker l'ID utilisateur
             
             // Accepter la demande d'amitié
             db.collection('friend_requests')
-                .where('from', '==', targetUserId)
+                .where('from', '==', userDetailsId)
                 .where('to', '==', currentUser.uid)
                 .where('status', '==', 'pending')
                 .get()
                 .then(snapshot => {
                     if (!snapshot.empty) {
-                        const batch = db.batch();
-                        
                         snapshot.forEach(doc => {
-                            batch.update(doc.ref, {
+                            doc.ref.update({
                                 status: 'accepted',
                                 acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
                             });
                         });
                         
-                        return batch.commit();
+                        showNotification(`Vous êtes maintenant ami avec ${userDetailsName}`, 'success');
+                        
+                        // Créer une notification pour l'utilisateur qui a envoyé la demande
+                        createNotification(
+                            userDetailsId,
+                            'friend_accepted',
+                            `${currentUser.displayName || currentUser.email} a accepté votre invitation d'amitié`,
+                            currentUser.uid
+                        );
                     }
-                })
-                .then(() => {
-                    showNotification(`Vous êtes maintenant ami avec ${targetUserName}`, 'success');
-                    
-                    // Créer une notification pour l'utilisateur qui a envoyé la demande
-                    createNotification(
-                        targetUserId,
-                        'friend_accepted',
-                        `${userName.textContent} a accepté votre invitation d'amitié`,
-                        currentUser.uid
-                    );
                 })
                 .catch(error => {
                     showNotification('Erreur lors de l\'acceptation de la demande d\'ami: ' + error.message, 'error');
@@ -2212,45 +2460,15 @@
         }
 
         function loadFriendsList() {
-            friendsList.innerHTML = '';
-            
-            // Récupérer les amis (demandes acceptées)
+            // CORRECTION: Charger la liste d'amis depuis les demandes acceptées
             db.collection('friend_requests')
                 .where('status', '==', 'accepted')
                 .where('from', '==', currentUser.uid)
                 .get()
                 .then(snapshot => {
-                    const friendPromises = [];
+                    friendsList.innerHTML = '';
                     
-                    snapshot.forEach(doc => {
-                        const request = doc.data();
-                        friendPromises.push(
-                            db.collection('users').doc(request.to).get()
-                        );
-                    });
-                    
-                    // Récupérer également les demandes où l'utilisateur actuel est le destinataire
-                    return Promise.all(friendPromises).then(() => {
-                        return db.collection('friend_requests')
-                            .where('status', '==', 'accepted')
-                            .where('to', '==', currentUser.uid)
-                            .get();
-                    });
-                })
-                .then(snapshot => {
-                    const friendPromises = [];
-                    
-                    snapshot.forEach(doc => {
-                        const request = doc.data();
-                        friendPromises.push(
-                            db.collection('users').doc(request.from).get()
-                        );
-                    });
-                    
-                    return Promise.all(friendPromises);
-                })
-                .then(friendDocs => {
-                    if (friendDocs.length === 0) {
+                    if (snapshot.empty) {
                         friendsList.innerHTML = `
                             <div class="empty-state">
                                 <i class="fas fa-users"></i>
@@ -2260,28 +2478,33 @@
                         return;
                     }
                     
-                    friendDocs.forEach(doc => {
-                        if (doc.exists) {
-                            const friend = doc.data();
-                            const friendItem = document.createElement('li');
-                            friendItem.className = 'friend-item';
-                            friendItem.innerHTML = `
-                                <div class="profile-container">
-                                    <img src="${friend.photoURL || 'https://via.placeholder.com/50'}" alt="Photo de profil" class="profile-pic">
-                                    <div class="online-indicator" style="background-color: ${friend.isOnline ? '#42B72A' : '#65676B'}"></div>
-                                </div>
-                                <div class="friend-info">
-                                    <div class="friend-name">${friend.username}</div>
-                                    <div class="friend-status">${friend.isOnline ? 'En ligne' : 'Hors ligne'}</div>
-                                </div>
-                            `;
-                            
-                            friendItem.addEventListener('click', () => {
-                                openChat(friend.uid, friend.username);
+                    snapshot.forEach(doc => {
+                        const request = doc.data();
+                        // Charger les informations de l'ami
+                        db.collection('users').doc(request.to).get()
+                            .then(userDoc => {
+                                if (userDoc.exists) {
+                                    const user = userDoc.data();
+                                    const friendItem = document.createElement('li');
+                                    friendItem.className = 'friend-item';
+                                    friendItem.innerHTML = `
+                                        <div class="profile-container">
+                                            <img src="${user.photoURL || 'https://via.placeholder.com/50'}" alt="Photo de profil" class="profile-pic">
+                                            <div class="online-indicator" style="background-color: ${user.isOnline ? '#42B72A' : '#65676B'}"></div>
+                                        </div>
+                                        <div class="friend-info">
+                                            <div class="friend-name">${user.username}</div>
+                                            <div class="friend-status">${user.isOnline ? 'En ligne' : 'Hors ligne'}</div>
+                                        </div>
+                                    `;
+                                    
+                                    friendItem.addEventListener('click', () => {
+                                        openChatWithUser(user.uid, user.username);
+                                    });
+                                    
+                                    friendsList.appendChild(friendItem);
+                                }
                             });
-                            
-                            friendsList.appendChild(friendItem);
-                        }
                     });
                 })
                 .catch(error => {
@@ -2289,8 +2512,102 @@
                 });
         }
 
+        function loadFriendRequests() {
+            // Charger les invitations d'amis reçues
+            db.collection('friend_requests')
+                .where('to', '==', currentUser.uid)
+                .where('status', '==', 'pending')
+                .get()
+                .then(snapshot => {
+                    friendRequestsList.innerHTML = '';
+                    
+                    if (snapshot.empty) {
+                        friendRequestsList.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-user-clock"></i>
+                                <p>Aucune invitation</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const request = doc.data();
+                        // Charger les informations de l'expéditeur
+                        db.collection('users').doc(request.from).get()
+                            .then(userDoc => {
+                                if (userDoc.exists) {
+                                    const user = userDoc.data();
+                                    const requestItem = document.createElement('li');
+                                    requestItem.className = 'friend-request';
+                                    requestItem.innerHTML = `
+                                        <div class="profile-container">
+                                            <img src="${user.photoURL || 'https://via.placeholder.com/50'}" alt="Photo de profil" class="profile-pic">
+                                            <div class="online-indicator" style="background-color: ${user.isOnline ? '#42B72A' : '#65676B'}"></div>
+                                        </div>
+                                        <div class="friend-request-info">
+                                            <div class="friend-request-name">${user.username}</div>
+                                            <div class="friend-status">Vous a envoyé une invitation d'amitié</div>
+                                        </div>
+                                        <div class="friend-request-actions">
+                                            <button class="btn-accept" data-request-id="${doc.id}">Accepter</button>
+                                            <button class="btn-decline" data-request-id="${doc.id}">Refuser</button>
+                                        </div>
+                                    `;
+                                    
+                                    // Ajouter les écouteurs d'événements pour les boutons
+                                    requestItem.querySelector('.btn-accept').addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        acceptFriendRequest(doc.id);
+                                    });
+                                    
+                                    requestItem.querySelector('.btn-decline').addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        declineFriendRequest(doc.id);
+                                    });
+                                    
+                                    friendRequestsList.appendChild(requestItem);
+                                }
+                            });
+                    });
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des invitations d\'amis:', error);
+                });
+        }
+
+        function acceptFriendRequest(requestId) {
+            db.collection('friend_requests').doc(requestId).update({
+                status: 'accepted',
+                acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                showNotification('Invitation d\'ami acceptée', 'success');
+                // Recharger la liste des amis et des invitations
+                loadFriendsList();
+                loadFriendRequests();
+            })
+            .catch(error => {
+                showNotification('Erreur lors de l\'acceptation de l\'invitation: ' + error.message, 'error');
+            });
+        }
+
+        function declineFriendRequest(requestId) {
+            db.collection('friend_requests').doc(requestId).update({
+                status: 'declined'
+            })
+            .then(() => {
+                showNotification('Invitation d\'ami refusée', 'info');
+                // Recharger la liste des invitations
+                loadFriendRequests();
+            })
+            .catch(error => {
+                showNotification('Erreur lors du refus de l\'invitation: ' + error.message, 'error');
+            });
+        }
+
         // =====================================================
-        // FONCTIONS DE MESSAGERIE
+        // FONCTIONS DE MESSAGERIE (CORRIGÉES)
         // =====================================================
 
         function sendMessage() {
@@ -2302,29 +2619,50 @@
                 senderId: currentUser.uid,
                 text: messageText,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                status: 'sent'
+                status: 'sent' // Statut initial
             };
             
-            // Ajouter le message à la collection de messages du chat
-            db.collection('chats').doc(currentChat.id).collection('messages').add(message)
-                .then(() => {
-                    // Mettre à jour le dernier message de la conversation
-                    return db.collection('chats').doc(currentChat.id).update({
+            // CORRECTION: Vérifier si le chat existe avant d'envoyer un message
+            const chatRef = db.collection('chats').doc(currentChat.id);
+            
+            chatRef.get().then(doc => {
+                if (!doc.exists) {
+                    // Créer le chat s'il n'existe pas
+                    return chatRef.set({
+                        participants: [currentUser.uid, currentChat.otherUserId],
                         lastMessage: messageText,
-                        lastMessageTime: message.timestamp
+                        lastMessageTime: message.timestamp,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(() => {
+                        // Ajouter le message après avoir créé le chat
+                        return chatRef.collection('messages').add(message);
                     });
-                })
-                .then(() => {
-                    // Réinitialiser le champ de message
-                    messageInput.value = '';
-                    messageInput.style.height = 'auto';
-                })
-                .catch(error => {
-                    showNotification('Erreur lors de l\'envoi du message: ' + error.message, 'error');
+                } else {
+                    // Le chat existe, ajouter simplement le message
+                    return chatRef.collection('messages').add(message);
+                }
+            })
+            .then(() => {
+                // Mettre à jour le dernier message de la conversation
+                return chatRef.update({
+                    lastMessage: messageText,
+                    lastMessageTime: message.timestamp
                 });
+            })
+            .then(() => {
+                // Réinitialiser le champ de message
+                messageInput.value = '';
+                
+                // Ajuster la hauteur du textarea
+                messageInput.style.height = 'auto';
+            })
+            .catch(error => {
+                showNotification('Erreur lors de l\'envoi du message: ' + error.message, 'error');
+            });
         }
 
-        function openChat(otherUserId, otherUserName = 'Utilisateur') {
+        // CORRECTION: Fonction unique pour ouvrir un chat
+        function openChatWithUser(otherUserId, otherUserName) {
             // Générer un ID de chat unique basé sur les IDs des utilisateurs
             const chatId = [currentUser.uid, otherUserId].sort().join('_');
             
@@ -2335,12 +2673,7 @@
                 if (!doc.exists) {
                     // Créer le chat s'il n'existe pas
                     return chatRef.set({
-                        id: chatId,
                         participants: [currentUser.uid, otherUserId],
-                        participantNames: {
-                            [currentUser.uid]: userName.textContent,
-                            [otherUserId]: otherUserName
-                        },
                         lastMessage: '',
                         lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -2363,6 +2696,9 @@
                 
                 // Écouter les nouveaux messages en temps réel
                 setupChatListener(chatId);
+                
+                // Afficher la vue de chat
+                showChatView();
             })
             .catch(error => {
                 showNotification('Erreur lors de l\'ouverture du chat: ' + error.message, 'error');
@@ -2370,8 +2706,8 @@
         }
 
         function updateChatUI(otherUserName) {
-            // Mettre à jour l'en-tête du chat
-            chatUserName.textContent = otherUserName;
+            // Mettre à jour l'en-tête du chat avec les informations de l'autre utilisateur
+            chatUserName.textContent = otherUserName || 'Utilisateur';
             chatUserPic.src = 'https://via.placeholder.com/40';
             chatUserStatus.textContent = 'En ligne';
             chatOnlineIndicator.style.display = 'block';
@@ -2389,64 +2725,6 @@
                 });
         }
 
-        function loadChatMessages(chatId) {
-            messagesContainer.innerHTML = '';
-            
-            db.collection('chats').doc(chatId).collection('messages')
-                .orderBy('timestamp', 'asc')
-                .get()
-                .then(snapshot => {
-                    if (snapshot.empty) {
-                        const infoMessage = document.createElement('div');
-                        infoMessage.className = 'empty-state';
-                        infoMessage.innerHTML = `
-                            <i class="fas fa-comment-slash"></i>
-                            <p>Aucun message dans cette conversation</p>
-                            <p>Soyez le premier à envoyer un message !</p>
-                        `;
-                        messagesContainer.appendChild(infoMessage);
-                        return;
-                    }
-                    
-                    snapshot.forEach(doc => {
-                        const message = doc.data();
-                        displayMessage(message);
-                    });
-                    
-                    // Faire défiler vers le bas
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                })
-                .catch(error => {
-                    console.error('Erreur lors du chargement des messages:', error);
-                });
-        }
-
-        function displayMessage(message) {
-            const messageElement = document.createElement('div');
-            messageElement.className = `message ${message.senderId === currentUser.uid ? 'message-sent' : 'message-received'}`;
-            
-            let messageContent = '';
-            
-            if (message.text) {
-                messageContent = `<div>${message.text}</div>`;
-            } else if (message.mediaUrl) {
-                if (message.mediaType === 'image') {
-                    messageContent = `<img src="${message.mediaUrl}" alt="Image" class="message-media">`;
-                } else if (message.mediaType === 'video') {
-                    messageContent = `<video src="${message.mediaUrl}" controls class="message-media"></video>`;
-                } else if (message.mediaType === 'audio') {
-                    messageContent = `<audio src="${message.mediaUrl}" controls class="message-audio"></audio>`;
-                }
-            }
-            
-            messageElement.innerHTML = `
-                ${messageContent}
-                <div class="message-time">${formatTime(message.timestamp)}</div>
-            `;
-            
-            messagesContainer.appendChild(messageElement);
-        }
-
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -2459,16 +2737,8 @@
                 mediaPreview.src = e.target.result;
                 
                 // Redimensionner le canvas pour correspondre à l'image
-                const img = new Image();
-                img.onload = function() {
-                    drawingCanvas.width = img.width;
-                    drawingCanvas.height = img.height;
-                    
-                    // Redessiner l'image sur le canvas pour l'édition
-                    const ctx = drawingCanvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-                };
-                img.src = e.target.result;
+                drawingCanvas.width = mediaPreview.width;
+                drawingCanvas.height = mediaPreview.height;
                 
                 mediaEditContainer.style.display = 'flex';
                 // Réinitialiser le filtre
@@ -2500,18 +2770,12 @@
         function clearDrawing() {
             const ctx = drawingCanvas.getContext('2d');
             ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-            
-            // Redessiner l'image d'origine
-            const img = new Image();
-            img.onload = function() {
-                ctx.drawImage(img, 0, 0);
-            };
-            img.src = mediaPreview.src;
         }
 
         function startDrawing(e) {
             if (!isDrawing) return;
             
+            isDrawing = true;
             const rect = drawingCanvas.getBoundingClientRect();
             lastX = e.clientX - rect.left;
             lastY = e.clientY - rect.top;
@@ -2521,6 +2785,7 @@
             if (!isDrawing) return;
             
             e.preventDefault();
+            isDrawing = true;
             const rect = drawingCanvas.getBoundingClientRect();
             lastX = e.touches[0].clientX - rect.left;
             lastY = e.touches[0].clientY - rect.top;
@@ -2572,20 +2837,22 @@
         }
 
         function stopDrawing() {
-            // Pas besoin de faire quoi que ce soit ici
+            isDrawing = false;
         }
 
         function applyMediaFilter(filter) {
             currentMediaFilter = filter;
             
             // Retirer toutes les classes de filtre
-            mediaPreview.classList.remove('filter-grayscale', 'filter-sepia');
+            mediaPreview.classList.remove('filter-grayscale', 'filter-sepia', 'filter-crop');
             
             // Appliquer le filtre sélectionné
             if (filter === 'grayscale') {
                 mediaPreview.classList.add('filter-grayscale');
             } else if (filter === 'sepia') {
                 mediaPreview.classList.add('filter-sepia');
+            } else if (filter === 'crop') {
+                mediaPreview.classList.add('filter-crop');
             }
             
             // Mettre à jour les boutons de filtre
@@ -2613,78 +2880,95 @@
                 resourceType = 'image';
             } else if (currentMediaFile.type.startsWith('video/')) {
                 resourceType = 'video';
-            } else if (currentMediaFile.type.startsWith('audio/')) {
-                resourceType = 'video'; // Cloudinary traite l'audio comme vidéo
             }
             
             // Fusionner le dessin avec l'image
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            canvas.width = drawingCanvas.width;
-            canvas.height = drawingCanvas.height;
+            canvas.width = mediaPreview.naturalWidth || mediaPreview.videoWidth;
+            canvas.height = mediaPreview.naturalHeight || mediaPreview.videoHeight;
             
-            // Dessiner l'image originale avec le filtre
-            ctx.filter = currentMediaFilter === 'grayscale' ? 'grayscale(100%)' : 
-                        currentMediaFilter === 'sepia' ? 'sepia(100%)' : 'none';
+            // Dessiner l'image originale
+            ctx.drawImage(mediaPreview, 0, 0, canvas.width, canvas.height);
             
-            const img = new Image();
-            img.onload = function() {
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            // Appliquer le filtre
+            if (currentMediaFilter === 'grayscale') {
+                ctx.filter = 'grayscale(100%)';
+                ctx.drawImage(canvas, 0, 0);
                 ctx.filter = 'none';
+            } else if (currentMediaFilter === 'sepia') {
+                ctx.filter = 'sepia(100%)';
+                ctx.drawImage(canvas, 0, 0);
+                ctx.filter = 'none';
+            }
+            
+            // Dessiner les annotations
+            ctx.drawImage(drawingCanvas, 0, 0, canvas.width, canvas.height);
+            
+            // Convertir en blob
+            canvas.toBlob(blob => {
+                // Créer un fichier à partir du blob
+                const editedFile = new File([blob], currentMediaFile.name, { type: currentMediaFile.type });
                 
-                // Dessiner les annotations
-                ctx.drawImage(drawingCanvas, 0, 0);
-                
-                // Convertir en blob
-                canvas.toBlob(blob => {
-                    // Créer un fichier à partir du blob
-                    const editedFile = new File([blob], currentMediaFile.name, { type: currentMediaFile.type });
-                    
-                    // Téléverser le fichier vers Cloudinary
-                    uploadToCloudinary(editedFile, resourceType)
-                        .then(result => {
-                            // Créer un message média
-                            const message = {
-                                senderId: currentUser.uid,
-                                mediaUrl: result.secure_url,
-                                mediaType: resourceType,
-                                filter: currentMediaFilter,
-                                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                                status: 'sent'
-                            };
-                            
-                            // Ajouter le message média
-                            return db.collection('chats').doc(currentChat.id).collection('messages').add(message);
-                        })
-                        .then(() => {
-                            // Mettre à jour le dernier message de la conversation
-                            let lastMessage = 'Fichier média';
-                            if (resourceType === 'image') {
-                                lastMessage = '📷 Image';
-                            } else if (resourceType === 'video') {
-                                lastMessage = '🎥 Vidéo';
-                            } else if (resourceType === 'audio') {
-                                lastMessage = '🎤 Audio';
+                // Téléverser le fichier vers Cloudinary
+                uploadToCloudinary(editedFile, resourceType)
+                    .then(result => {
+                        // Créer un message média
+                        const message = {
+                            senderId: currentUser.uid,
+                            mediaUrl: result.secure_url,
+                            mediaType: resourceType,
+                            filter: currentMediaFilter,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            status: 'sent'
+                        };
+                        
+                        // CORRECTION: Vérifier si le chat existe avant d'envoyer un message média
+                        const chatRef = db.collection('chats').doc(currentChat.id);
+                        
+                        return chatRef.get().then(doc => {
+                            if (!doc.exists) {
+                                // Créer le chat s'il n'existe pas
+                                return chatRef.set({
+                                    participants: [currentUser.uid, currentChat.otherUserId],
+                                    lastMessage: 'Fichier média',
+                                    lastMessageTime: message.timestamp,
+                                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                                }).then(() => {
+                                    // Ajouter le message après avoir créé le chat
+                                    return chatRef.collection('messages').add(message);
+                                });
+                            } else {
+                                // Le chat existe, ajouter simplement le message
+                                return chatRef.collection('messages').add(message);
                             }
-                            
-                            return db.collection('chats').doc(currentChat.id).update({
-                                lastMessage: lastMessage,
-                                lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
-                            });
-                        })
-                        .then(() => {
-                            showNotification('Fichier envoyé avec succès', 'success');
-                            mediaEditContainer.style.display = 'none';
-                            currentMediaFile = null;
-                            clearDrawing();
-                        })
-                        .catch(error => {
-                            showNotification('Erreur lors de l\'envoi du fichier: ' + error.message, 'error');
                         });
-                }, currentMediaFile.type);
-            };
-            img.src = mediaPreview.src;
+                    })
+                    .then(() => {
+                        // Mettre à jour le dernier message de la conversation
+                        let lastMessage = 'Fichier média';
+                        if (resourceType === 'image') {
+                            lastMessage = '📷 Image';
+                        } else if (resourceType === 'video') {
+                            lastMessage = '🎥 Vidéo';
+                        }
+                        
+                        return db.collection('chats').doc(currentChat.id).update({
+                            lastMessage: lastMessage,
+                            lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    })
+                    .then(() => {
+                        showNotification('Fichier envoyé avec succès', 'success');
+                        mediaEditContainer.style.display = 'none';
+                        currentMediaFile = null;
+                        clearDrawing();
+                    })
+                    .catch(error => {
+                        showNotification('Erreur lors de l\'envoi du fichier: ' + error.message, 'error');
+                    });
+            }, currentMediaFile.type);
         }
 
         // =====================================================
@@ -2832,8 +3116,26 @@
                         status: 'sent'
                     };
                     
-                    // Ajouter le message audio
-                    return db.collection('chats').doc(currentChat.id).collection('messages').add(message);
+                    // CORRECTION: Vérifier si le chat existe avant d'envoyer un message audio
+                    const chatRef = db.collection('chats').doc(currentChat.id);
+                    
+                    return chatRef.get().then(doc => {
+                        if (!doc.exists) {
+                            // Créer le chat s'il n'existe pas
+                                return chatRef.set({
+                                participants: [currentUser.uid, currentChat.otherUserId],
+                                lastMessage: '🎤 Message audio',
+                                lastMessageTime: message.timestamp,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            }).then(() => {
+                                // Ajouter le message après avoir créé le chat
+                                return chatRef.collection('messages').add(message);
+                            });
+                        } else {
+                            // Le chat existe, ajouter simplement le message
+                            return chatRef.collection('messages').add(message);
+                        }
+                    });
                 })
                 .then(() => {
                     // Mettre à jour le dernier message de la conversation
@@ -2858,10 +3160,10 @@
             return new Promise((resolve, reject) => {
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                formData.append('upload_preset', CONST_CLOUDINARY_UPLOAD_PRESET);
                 
                 // Utiliser l'endpoint auto/upload pour la détection automatique du type
-                fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
+                fetch(`https://api.cloudinary.com/v1_1/${CONST_CLOUDINARY_CLOUD_NAME}/auto/upload`, {
                     method: 'POST',
                     body: formData
                 })
@@ -2881,18 +3183,18 @@
         }
 
         // =====================================================
-        // WEBRTC - APPELS AUDIO/VIDÉO
+        // WEBRTC - APPELS AUDIO/VIDÉO (CORRIGÉ)
         // =====================================================
 
         function initializePeer() {
             // Initialiser PeerJS avec l'ID de l'utilisateur
             peer = new Peer(currentUser.uid, {
                 config: {
-                    iceServers: STUN_SERVERS
+                    iceServers: CONST_STUN_SERVERS
                 }
             });
             
-            // Stocker l'ID PeerJS dans le profil utilisateur
+            // CORRECTION: Stocker l'ID PeerJS dans le profil utilisateur
             db.collection('users').doc(currentUser.uid).update({
                 peerId: peer.id
             }).catch(error => {
@@ -2924,17 +3226,41 @@
                 console.error('Erreur PeerJS:', err);
                 showNotification('Erreur de connexion d\'appel', 'error');
             });
+            
+            // CORRECTION: Écouter les offres d'appel dans Firestore
+            db.collection('calls')
+                .where('to', '==', currentUser.uid)
+                .where('status', '==', 'ringing')
+                .onSnapshot(snapshot => {
+                    snapshot.docChanges().forEach(change => {
+                        if (change.type === 'added') {
+                            const callData = change.doc.data();
+                            handleIncomingCall(callData);
+                        }
+                    });
+                });
         }
 
         function initializeLocalStream() {
-            // Tenter de capturer le flux média local après l'authentification
-            navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+            // CORRECTION: Initialiser le flux média local après l'authentification
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then(stream => {
                     localStream = stream;
+                    console.log('Flux média local initialisé');
                 })
                 .catch(error => {
-                    console.error('Erreur lors de l\'accès au média:', error);
+                    console.error('Erreur lors de l\'initialisation du flux média local:', error);
                 });
+        }
+
+        function handleIncomingCall(callData) {
+            // Afficher l'interface d'appel entrant
+            incomingCallContainer.style.display = 'flex';
+            incomingCallUser.textContent = `Appel de ${callData.fromName || 'Utilisateur'}`;
+            incomingCallType.textContent = callData.type === 'video' ? 'Appel vidéo' : 'Appel audio';
+            
+            // Stocker les données d'appel
+            currentCallData = callData;
         }
 
         function startCall(type) {
@@ -2943,13 +3269,13 @@
                 return;
             }
             
-            // Vérifier que le localStream existe
+            // CORRECTION: Vérifier que le flux local existe
             if (!localStream) {
                 showNotification('Impossible d\'accéder à la caméra/microphone', 'error');
                 return;
             }
             
-            // Obtenir l'ID PeerJS de l'utilisateur cible
+            // CORRECTION: Obtenir l'ID PeerJS de l'utilisateur cible
             db.collection('users').doc(currentChat.otherUserId).get()
                 .then(doc => {
                     if (!doc.exists) {
@@ -2961,50 +3287,53 @@
                         throw new Error('L\'utilisateur n\'a pas d\'ID PeerJS');
                     }
                     
-                    // Préparer le stream local selon le type d'appel
-                    const callStream = localStream.clone();
-                    if (type === 'audio') {
-                        // Désactiver la vidéo pour les appels audio
-                        const videoTracks = callStream.getVideoTracks();
-                        videoTracks.forEach(track => track.enabled = false);
-                    }
+                    // Obtenir le flux média local
+                    const mediaConstraints = {
+                        audio: true,
+                        video: type === 'video'
+                    };
                     
-                    // Appeler l'autre utilisateur
-                    const call = peer.call(targetUser.peerId, callStream, {
-                        metadata: { type: type }
-                    });
-                    
-                    currentCall = call;
-                    
-                    // Afficher l'interface d'appel
-                    callContainer.style.display = 'flex';
-                    callInfo.querySelector('h2').textContent = `Appel avec ${currentChat.name}`;
-                    callInfo.querySelector('p').textContent = 'Appel en cours...';
-                    
-                    // Afficher le flux local
-                    if (type === 'video') {
-                        localVideo.srcObject = callStream;
-                    }
-                    
-                    // Écouter le flux distant
-                    call.on('stream', (remoteStream) => {
-                        remoteVideo.srcObject = remoteStream;
-                    });
-                    
-                    // Gérer la fin d'appel
-                    call.on('close', () => {
-                        endCall();
-                    });
-                    
-                    // Créer une entrée dans Firestore pour la signalisation
-                    return db.collection('calls').add({
-                        from: currentUser.uid,
-                        fromName: userName.textContent,
-                        to: currentChat.otherUserId,
-                        type: type,
-                        status: 'ringing',
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    return navigator.mediaDevices.getUserMedia(mediaConstraints)
+                        .then(stream => {
+                            localStream = stream;
+                            
+                            // Afficher le flux local
+                            if (type === 'video') {
+                                localVideo.srcObject = stream;
+                            }
+                            
+                            // Appeler l'autre utilisateur
+                            const call = peer.call(targetUser.peerId, stream, {
+                                metadata: { type: type }
+                            });
+                            
+                            currentCall = call;
+                            
+                            // Afficher l'interface d'appel
+                            callContainer.style.display = 'flex';
+                            callInfo.querySelector('h2').textContent = `Appel avec ${currentChat.name}`;
+                            callInfo.querySelector('p').textContent = 'Appel en cours...';
+                            
+                            // Écouter le flux distant
+                            call.on('stream', (remoteStream) => {
+                                remoteVideo.srcObject = remoteStream;
+                            });
+                            
+                            // Gérer la fin d'appel
+                            call.on('close', () => {
+                                endCall();
+                            });
+                            
+                            // CORRECTION: Créer une entrée dans Firestore pour la signalisation
+                            return db.collection('calls').add({
+                                from: currentUser.uid,
+                                fromName: currentUser.displayName || currentUser.email,
+                                to: currentChat.otherUserId,
+                                type: type,
+                                status: 'ringing',
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        });
                 })
                 .catch(error => {
                     console.error('Erreur lors du démarrage de l\'appel:', error);
@@ -3013,57 +3342,74 @@
         }
 
         function acceptCall(incomingCall) {
-            // Vérifier que le localStream existe
-            if (!localStream) {
-                showNotification('Impossible d\'accéder à la caméra/microphone', 'error');
-                declineCall();
-                return;
-            }
+            // Obtenir le flux média local
+            const mediaConstraints = {
+                audio: true,
+                video: incomingCall.metadata.type === 'video'
+            };
             
-            // Préparer le stream local selon le type d'appel
-            const callStream = localStream.clone();
-            if (incomingCall.metadata.type === 'audio') {
-                // Désactiver la vidéo pour les appels audio
-                const videoTracks = callStream.getVideoTracks();
-                videoTracks.forEach(track => track.enabled = false);
-            }
-            
-            // Répondre à l'appel
-            incomingCall.answer(callStream);
-            
-            // Afficher le flux local
-            if (incomingCall.metadata.type === 'video') {
-                localVideo.srcObject = callStream;
-            }
-            
-            // Cacher l'interface d'appel entrant
-            incomingCallContainer.style.display = 'none';
-            
-            // Afficher l'interface d'appel
-            callContainer.style.display = 'flex';
-            callInfo.querySelector('h2').textContent = `Appel avec ${currentChat ? currentChat.name : 'Utilisateur'}`;
-            callInfo.querySelector('p').textContent = 'Appel en cours...';
-            
-            // Écouter le flux distant
-            incomingCall.on('stream', (remoteStream) => {
-                remoteVideo.srcObject = remoteStream;
-            });
-            
-            // Stocker l'appel actuel
-            currentCall = incomingCall;
-            
-            // Gérer la fin d'appel
-            incomingCall.on('close', () => {
-                endCall();
-            });
+            navigator.mediaDevices.getUserMedia(mediaConstraints)
+                .then(stream => {
+                    localStream = stream;
+                    
+                    // Afficher le flux local
+                    if (incomingCall.metadata.type === 'video') {
+                        localVideo.srcObject = stream;
+                    }
+                    
+                    // Répondre à l'appel
+                    incomingCall.answer(stream);
+                    
+                    // Cacher l'interface d'appel entrant
+                    incomingCallContainer.style.display = 'none';
+                    
+                    // Afficher l'interface d'appel
+                    callContainer.style.display = 'flex';
+                    callInfo.querySelector('h2').textContent = `Appel avec ${currentChat.name}`;
+                    callInfo.querySelector('p').textContent = 'Appel en cours...';
+                    
+                    // Écouter le flux distant
+                    incomingCall.on('stream', (remoteStream) => {
+                        remoteVideo.srcObject = remoteStream;
+                    });
+                    
+                    // Stocker l'appel actuel
+                    currentCall = incomingCall;
+                    
+                    // Gérer la fin d'appel
+                    incomingCall.on('close', () => {
+                        endCall();
+                    });
+                    
+                    // CORRECTION: Mettre à jour le statut de l'appel dans Firestore
+                    if (currentCallData) {
+                        db.collection('calls').doc(currentCallData.id).update({
+                            status: 'accepted'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur d\'accès au média:', error);
+                    showNotification('Impossible d\'accéder à la caméra/microphone', 'error');
+                    declineCall();
+                });
         }
 
         function declineCall() {
             if (currentCall) {
                 currentCall.close();
             }
+            
+            // CORRECTION: Mettre à jour le statut de l'appel dans Firestore
+            if (currentCallData) {
+                db.collection('calls').doc(currentCallData.id).update({
+                    status: 'declined'
+                });
+            }
+            
             incomingCallContainer.style.display = 'none';
             currentCall = null;
+            currentCallData = null;
         }
 
         function endCall() {
@@ -3071,9 +3417,17 @@
                 currentCall.close();
             }
             
+            // CORRECTION: Mettre à jour le statut de l'appel dans Firestore
+            if (currentCallData) {
+                db.collection('calls').doc(currentCallData.id).update({
+                    status: 'ended'
+                });
+            }
+            
             // Arrêter tous les tracks des streams
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
             }
             
             // Réinitialiser les vidéos
@@ -3085,6 +3439,7 @@
             incomingCallContainer.style.display = 'none';
             
             currentCall = null;
+            currentCallData = null;
         }
 
         function toggleMute() {
@@ -3108,111 +3463,229 @@
         }
 
         // =====================================================
-        // SYSTÈME DE NOTIFICATIONS
+        // FONCTIONS DE GESTION DES GROUPES
         // =====================================================
 
-        function createNotification(toId, type, message, fromId) {
-            db.collection('notifications').add({
-                toId: toId,
-                fromId: fromId,
-                type: type,
-                message: message,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                isRead: false
-            })
-            .catch(error => {
-                console.error('Erreur lors de la création de la notification:', error);
-            });
+        function showCreateGroupModal() {
+            // Charger la liste des amis pour la sélection
+            loadFriendsForGroup();
+            createGroupModal.style.display = 'flex';
         }
 
-        function loadNotifications() {
-            db.collection('notifications')
-                .where('toId', '==', currentUser.uid)
-                .where('isRead', '==', false)
-                .orderBy('timestamp', 'desc')
+        function loadFriendsForGroup() {
+            friendsSelectContainer.innerHTML = '';
+            
+            // Charger la liste des amis
+            db.collection('friend_requests')
+                .where('status', '==', 'accepted')
+                .where('from', '==', currentUser.uid)
                 .get()
                 .then(snapshot => {
-                    notificationsList.innerHTML = '';
+                    if (snapshot.empty) {
+                        friendsSelectContainer.innerHTML = '<p>Aucun ami à ajouter</p>';
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const request = doc.data();
+                        // Charger les informations de l'ami
+                        db.collection('users').doc(request.to).get()
+                            .then(userDoc => {
+                                if (userDoc.exists) {
+                                    const user = userDoc.data();
+                                    const friendCheckbox = document.createElement('div');
+                                    friendCheckbox.className = 'friend-checkbox';
+                                    friendCheckbox.innerHTML = `
+                                        <input type="checkbox" id="friend-${user.uid}" value="${user.uid}">
+                                        <label for="friend-${user.uid}">${user.username}</label>
+                                    `;
+                                    friendsSelectContainer.appendChild(friendCheckbox);
+                                }
+                            });
+                    });
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des amis:', error);
+                });
+        }
+
+        function createGroup() {
+            const name = groupName.value.trim();
+            const description = groupDescription.value.trim();
+            
+            if (!name) {
+                showNotification('Le nom du groupe est requis', 'error');
+                return;
+            }
+            
+            // Récupérer les membres sélectionnés
+            const selectedMembers = [];
+            const checkboxes = friendsSelectContainer.querySelectorAll('input[type="checkbox"]:checked');
+            checkboxes.forEach(checkbox => {
+                selectedMembers.push(checkbox.value);
+            });
+            
+            // Ajouter l'utilisateur actuel comme membre
+            selectedMembers.push(currentUser.uid);
+            
+            const groupData = {
+                name: name,
+                description: description,
+                members: selectedMembers,
+                createdBy: currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            // Gérer l'image de groupe si elle a été sélectionnée
+            if (groupImage.files[0]) {
+                uploadToCloudinary(groupImage.files[0], 'image')
+                    .then(result => {
+                        groupData.image = result.secure_url;
+                        return db.collection('groups').add(groupData);
+                    })
+                    .then(() => {
+                        showNotification('Groupe créé avec succès', 'success');
+                        closeAllModals();
+                        // Recharger la liste des groupes
+                        loadGroupsList();
+                    })
+                    .catch(error => {
+                        showNotification('Erreur lors de la création du groupe: ' + error.message, 'error');
+                    });
+            } else {
+                db.collection('groups').add(groupData)
+                    .then(() => {
+                        showNotification('Groupe créé avec succès', 'success');
+                        closeAllModals();
+                        // Recharger la liste des groupes
+                        loadGroupsList();
+                    })
+                    .catch(error => {
+                        showNotification('Erreur lors de la création du groupe: ' + error.message, 'error');
+                    });
+            }
+        }
+
+        function loadGroupsList() {
+            // Charger les groupes dont l'utilisateur est membre
+            db.collection('groups')
+                .where('members', 'array-contains', currentUser.uid)
+                .get()
+                .then(snapshot => {
+                    groupsList.innerHTML = '';
                     
                     if (snapshot.empty) {
-                        notificationsList.innerHTML = `
+                        groupsList.innerHTML = `
                             <div class="empty-state">
-                                <i class="fas fa-bell"></i>
-                                <p>Aucune notification</p>
+                                <i class="fas fa-user-friends"></i>
+                                <p>Aucun groupe</p>
                             </div>
                         `;
                         return;
                     }
                     
                     snapshot.forEach(doc => {
-                        const notification = doc.data();
-                        const notificationItem = document.createElement('li');
-                        notificationItem.className = 'notification-item';
-                        notificationItem.innerHTML = `
-                            <div class="notification-info">
-                                <div class="notification-text">${notification.message}</div>
-                                <div class="notification-time">${formatTime(notification.timestamp)}</div>
+                        const group = doc.data();
+                        const groupItem = document.createElement('li');
+                        groupItem.className = 'group-item';
+                        groupItem.innerHTML = `
+                            <div class="profile-container">
+                                <img src="${group.image || 'https://via.placeholder.com/50'}" alt="Photo du groupe" class="profile-pic">
+                            </div>
+                            <div class="group-info">
+                                <div class="group-name">${group.name}</div>
+                                <div class="group-members">${group.members.length} membres</div>
                             </div>
                         `;
                         
-                        notificationItem.addEventListener('click', () => {
-                            // Marquer comme lu
-                            doc.ref.update({ isRead: true });
-                            
-                            // Rediriger selon le type de notification
-                            handleNotificationClick(notification);
-                        });
-                        
-                        notificationsList.appendChild(notificationItem);
+                        groupsList.appendChild(groupItem);
                     });
                 })
                 .catch(error => {
-                    console.error('Erreur lors du chargement des notifications:', error);
+                    console.error('Erreur lors du chargement des groupes:', error);
                 });
         }
 
-        function handleNotificationClick(notification) {
-            switch(notification.type) {
-                case 'friend_request':
-                    // Ouvrir le profil de l'expéditeur
-                    db.collection('users').doc(notification.fromId).get()
-                        .then(doc => {
-                            if (doc.exists) {
-                                const userData = doc.data();
-                                userData.uid = doc.id;
-                                showUserDetails(userData);
-                            }
-                        });
-                    break;
-                case 'friend_accepted':
-                    // Ouvrir le chat avec l'ami
-                    openChat(notification.fromId);
-                    break;
-                case 'message':
-                    // Ouvrir le chat correspondant
-                    openChat(notification.fromId);
-                    break;
-            }
-        }
+        // =====================================================
+        // FONCTIONS DE GESTION DES APPELS
+        // =====================================================
 
-        function updateNotificationBadge() {
-            db.collection('notifications')
-                .where('toId', '==', currentUser.uid)
-                .where('isRead', '==', false)
+        function loadCallsList() {
+            // Charger l'historique des appels
+            db.collection('calls')
+                .where('from', '==', currentUser.uid)
+                .orderBy('timestamp', 'desc')
+                .limit(20)
                 .get()
                 .then(snapshot => {
-                    notificationsCount = snapshot.size;
+                    callsList.innerHTML = '';
                     
-                    if (notificationsCount > 0) {
-                        notificationBadge.textContent = notificationsCount > 9 ? '9+' : notificationsCount;
-                        notificationBadge.style.display = 'flex';
-                    } else {
-                        notificationBadge.style.display = 'none';
+                    if (snapshot.empty) {
+                        callsList.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-phone"></i>
+                                <p>Aucun appel récent</p>
+                            </div>
+                        `;
+                        return;
                     }
+                    
+                    snapshot.forEach(doc => {
+                        const call = doc.data();
+                        const callItem = document.createElement('li');
+                        callItem.className = 'call-item';
+                        
+                        // Déterminer l'icône et la couleur en fonction du statut
+                        let callIcon = '';
+                        let callClass = '';
+                        if (call.status === 'accepted' || call.status === 'ended') {
+                            callIcon = '<i class="fas fa-phone call-success"></i>';
+                            callClass = 'call-success';
+                        } else {
+                            callIcon = '<i class="fas fa-phone-slash call-missed"></i>';
+                            callClass = 'call-missed';
+                        }
+                        
+                        callItem.innerHTML = `
+                            <div class="profile-container">
+                                <img src="https://via.placeholder.com/50" alt="Photo de profil" class="profile-pic">
+                            </div>
+                            <div class="call-info">
+                                <div class="call-name">${call.toName || 'Utilisateur'}</div>
+                                <div class="call-details">
+                                    <span class="call-indicator ${callClass}">
+                                        ${callIcon}
+                                        ${call.type === 'video' ? 'Appel vidéo' : 'Appel audio'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="call-time">${formatTime(call.timestamp)}</div>
+                        `;
+                        
+                        callsList.appendChild(callItem);
+                    });
                 })
                 .catch(error => {
-                    console.error('Erreur lors de la mise à jour du badge de notification:', error);
+                    console.error('Erreur lors du chargement de l\'historique des appels:', error);
                 });
+        }
+
+        // =====================================================
+        // SYSTÈME DE NOTIFICATIONS
+        // =====================================================
+
+        function createNotification(toId, type, message, fromId) {
+            db.collection('notifications').add({
+                toId: toId,
+                type: type,
+                message: message,
+                fromId: fromId,
+                isRead: false,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .catch(error => {
+                console.error('Erreur lors de la création de la notification:', error);
+            });
         }
 
         // =====================================================
@@ -3228,10 +3701,10 @@
                 modal.style.display = 'none';
             });
             
-            // Arrêter l'écouteur d'amitié si nécessaire
-            if (friendshipListener) {
-                friendshipListener();
-                friendshipListener = null;
+            // Arrêter l'écouteur de demande d'amitié
+            if (friendRequestListener) {
+                friendRequestListener();
+                friendRequestListener = null;
             }
         }
 
@@ -3284,19 +3757,18 @@
             // Écouter les conversations
             db.collection('chats')
                 .where('participants', 'array-contains', currentUser.uid)
-                .orderBy('lastMessageTime', 'desc')
                 .onSnapshot(snapshot => {
                     updateChatList(snapshot);
                 });
             
-            // Écouter les notifications
-            db.collection('notifications')
-                .where('toId', '==', currentUser.uid)
-                .where('isRead', '==', false)
+            // Écouter les invitations d'amis
+            db.collection('friend_requests')
+                .where('to', '==', currentUser.uid)
+                .where('status', '==', 'pending')
                 .onSnapshot(snapshot => {
-                    updateNotificationBadge();
-                    if (document.querySelector('.tab.active').dataset.tab === 'notifications') {
-                        loadNotifications();
+                    // Recharger la liste des invitations si on est dans la vue Amis
+                    if (document.getElementById('friends-view').classList.contains('active')) {
+                        loadFriendRequests();
                     }
                 });
         }
@@ -3337,7 +3809,8 @@
                 } else {
                     // Trouver l'autre participant
                     const otherParticipantId = chat.participants.find(id => id !== currentUser.uid);
-                    chatName = chat.participantNames ? chat.participantNames[otherParticipantId] : 'Utilisateur';
+                    // Dans une vraie application, nous chargerions les données de cet utilisateur
+                    chatName = 'Utilisateur';
                     chatImage = 'https://via.placeholder.com/50';
                 }
                 
@@ -3349,13 +3822,14 @@
                     <div class="chat-info">
                         <div class="chat-name">${chatName}</div>
                         <div class="last-message">${chat.lastMessage || 'Aucun message'}</div>
+                        <div class="message-status status-sent">${getMessageStatusText(chat.lastMessageStatus)}</div>
                     </div>
                     <div class="chat-time">${formatTime(chat.lastMessageTime)}</div>
                 `;
                 
                 chatItem.addEventListener('click', () => {
                     const otherParticipantId = chat.participants.find(id => id !== currentUser.uid);
-                    openChat(otherParticipantId, chatName);
+                    openChatWithUser(otherParticipantId, chatName);
                     
                     // Marquer comme active
                     document.querySelectorAll('.chat-item').forEach(item => {
@@ -3366,6 +3840,74 @@
                 
                 chatList.appendChild(chatItem);
             });
+        }
+
+        function loadChatMessages(chatId) {
+            // Vider le conteneur de messages
+            messagesContainer.innerHTML = '';
+            
+            // Charger les messages depuis Firestore
+            db.collection('chats').doc(chatId).collection('messages')
+                .orderBy('timestamp', 'asc')
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        const infoMessage = document.createElement('div');
+                        infoMessage.className = 'empty-state';
+                        infoMessage.innerHTML = `
+                            <i class="fas fa-comment-slash"></i>
+                            <p>Aucun message dans cette conversation</p>
+                            <p>Soyez le premier à envoyer un message !</p>
+                        `;
+                        messagesContainer.appendChild(infoMessage);
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const message = doc.data();
+                        displayMessage(message);
+                    });
+                    
+                    // Faire défiler vers le bas
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des messages:', error);
+                });
+        }
+
+        function displayMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${message.senderId === currentUser.uid ? 'message-sent' : 'message-received'}`;
+            
+            let messageContent = '';
+            if (message.mediaUrl) {
+                if (message.mediaType === 'image') {
+                    messageContent = `<img src="${message.mediaUrl}" alt="Image" class="message-media">`;
+                } else if (message.mediaType === 'video') {
+                    messageContent = `<video src="${message.mediaUrl}" controls class="message-media"></video>`;
+                } else if (message.mediaType === 'audio') {
+                    messageContent = `<audio src="${message.mediaUrl}" controls class="message-audio"></audio>`;
+                }
+            } else {
+                messageContent = `<div class="message-text">${message.text}</div>`;
+            }
+            
+            messageElement.innerHTML = `
+                ${messageContent}
+                <div class="message-time">${formatTime(message.timestamp)}</div>
+            `;
+            
+            messagesContainer.appendChild(messageElement);
+        }
+
+        function getMessageStatusText(status) {
+            switch(status) {
+                case 'sent': return '✓';
+                case 'delivered': return '✓✓';
+                case 'read': return '✓✓';
+                default: return '';
+            }
         }
 
         function formatTime(timestamp) {
