@@ -96,7 +96,7 @@
             font-weight: 500;
         }
 
-        .form-group input {
+        .form-group input, .form-group textarea {
             width: 100%;
             padding: 12px;
             border-radius: 8px;
@@ -277,11 +277,11 @@
             padding: 10px 0;
         }
 
-        .chat-list, .friends-list {
+        .chat-list, .friends-list, .groups-list {
             list-style: none;
         }
 
-        .chat-item, .friend-item {
+        .chat-item, .friend-item, .group-item {
             padding: 15px 20px;
             display: flex;
             align-items: center;
@@ -290,7 +290,7 @@
             transition: background 0.2s;
         }
 
-        .chat-item:hover, .friend-item:hover {
+        .chat-item:hover, .friend-item:hover, .group-item:hover {
             background: var(--glass-bg);
         }
 
@@ -298,12 +298,12 @@
             background: var(--glass-bg);
         }
 
-        .chat-info, .friend-info {
+        .chat-info, .friend-info, .group-info {
             flex: 1;
             overflow: hidden;
         }
 
-        .chat-name, .friend-name {
+        .chat-name, .friend-name, .group-name {
             font-weight: 600;
             margin-bottom: 5px;
             white-space: nowrap;
@@ -311,7 +311,7 @@
             text-overflow: ellipsis;
         }
 
-        .last-message, .friend-status {
+        .last-message, .friend-status, .group-members {
             font-size: 14px;
             color: var(--text-secondary);
             white-space: nowrap;
@@ -347,6 +347,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            position: relative;
         }
 
         .chat-header {
@@ -433,12 +434,17 @@
             margin-top: 5px;
         }
 
+        /* CORRECTION: Barre de saisie fixée en bas */
         .message-input-container {
             padding: 15px 20px;
             border-top: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             gap: 10px;
+            position: sticky;
+            bottom: 0;
+            background: var(--bg-color);
+            z-index: 10;
         }
 
         .attachment-btn, .mic-btn {
@@ -582,78 +588,6 @@
             100% { opacity: 1; }
         }
 
-        /* Styles responsifs */
-        @media (max-width: 768px) {
-            .sidebar {
-                position: absolute;
-                left: 0;
-                top: 70px;
-                height: calc(100vh - 70px);
-                z-index: 100;
-                transform: translateX(-100%);
-                transition: transform 0.3s;
-                background: var(--bg-color);
-            }
-
-            .sidebar.active {
-                transform: translateX(0);
-            }
-
-            .menu-toggle {
-                display: block;
-                background: none;
-                border: none;
-                font-size: 20px;
-                color: var(--text-color);
-                cursor: pointer;
-            }
-
-            .message {
-                max-width: 85%;
-            }
-        }
-
-        @media (min-width: 769px) {
-            .menu-toggle {
-                display: none;
-            }
-        }
-
-        /* Styles pour les groupes */
-        .group-item {
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .group-item:hover {
-            background: var(--glass-bg);
-        }
-
-        .group-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .group-info {
-            flex: 1;
-        }
-
-        .group-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .group-members {
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
         /* Styles pour les demandes d'amis */
         .friend-request {
             padding: 15px 20px;
@@ -693,6 +627,55 @@
             border-radius: 6px;
             border: none;
             cursor: pointer;
+        }
+
+        /* Styles responsifs */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                left: 0;
+                top: 70px;
+                height: calc(100vh - 70px);
+                z-index: 100;
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+                background: var(--bg-color);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .menu-toggle {
+                display: block;
+                background: none;
+                border: none;
+                font-size: 20px;
+                color: var(--text-color);
+                cursor: pointer;
+            }
+
+            .message {
+                max-width: 85%;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .menu-toggle {
+                display: none;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -780,17 +763,26 @@
                 <div class="tab-content">
                     <!-- Liste des discussions -->
                     <ul class="chat-list" id="chat-list" style="display: block;">
-                        <!-- Les discussions seront ajoutées dynamiquement ici -->
+                        <div class="empty-state">
+                            <i class="fas fa-comments"></i>
+                            <p>Aucune conversation</p>
+                        </div>
                     </ul>
                     
                     <!-- Liste d'amis -->
                     <ul class="friends-list" id="friends-list" style="display: none;">
-                        <!-- Les amis seront ajoutés dynamiquement ici -->
+                        <div class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <p>Aucun ami</p>
+                        </div>
                     </ul>
                     
                     <!-- Liste des groupes -->
                     <ul class="groups-list" id="groups-list" style="display: none;">
-                        <!-- Les groupes seront ajoutés dynamiquement ici -->
+                        <div class="empty-state">
+                            <i class="fas fa-user-friends"></i>
+                            <p>Aucun groupe</p>
+                        </div>
                     </ul>
                 </div>
             </aside>
@@ -820,7 +812,6 @@
                 </div>
                 
                 <div class="messages-container" id="messages-container">
-                    <!-- Les messages seront ajoutés dynamiquement ici -->
                     <div class="welcome-message">
                         <p>Sélectionnez une conversation pour commencer à discuter</p>
                     </div>
@@ -914,17 +905,68 @@
 
     <script>
         // =====================================================
-        // INSTRUCTIONS DE CONFIGURATION
+        // RÈGLES DE SÉCURITÉ FIRESTORE (À COPIER DANS LA CONSOLE FIREBASE)
         // =====================================================
-        // 1. Configurez Firebase dans la console Firebase
-        // 2. Configurez Cloudinary et créez un upload preset non signé
-        // 3. Remplacez les valeurs ci-dessous par vos propres clés
-        // 4. Déployez les règles de sécurité Firestore fournies
-        // 5. Supprimez toutes les données de test de votre base Firestore
+        /*
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            // Règle 1: Authentification requise
+            function isAuthenticated() {
+              return request.auth != null;
+            }
+            
+            // Règle 2: Les utilisateurs peuvent lire tous les profils mais modifier seulement le leur
+            match /users/{userId} {
+              allow read: if isAuthenticated();
+              allow create: if isAuthenticated() && request.auth.uid == userId;
+              allow update, delete: if isAuthenticated() && request.auth.uid == userId;
+            }
+            
+            // Règle 3: Les chats sont accessibles uniquement aux participants
+            match /chats/{chatId} {
+              allow read, write: if isAuthenticated() && 
+                request.auth.uid in resource.data.participants;
+              
+              // Sous-collection des messages
+              match /messages/{messageId} {
+                allow read, create: if isAuthenticated() && 
+                  request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+              }
+            }
+            
+            // Règle 4: Les groupes sont accessibles uniquement aux membres
+            match /groups/{groupId} {
+              allow read, write: if isAuthenticated() && 
+                request.auth.uid in resource.data.members;
+              
+              // Sous-collection des messages de groupe
+              match /messages/{messageId} {
+                allow read, create: if isAuthenticated() && 
+                  request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+              }
+            }
+            
+            // Règle 5: Les demandes d'amis
+            match /friendRequests/{requestId} {
+              allow read, create: if isAuthenticated();
+              allow update: if isAuthenticated() && 
+                (request.auth.uid == resource.data.receiverId || 
+                 request.auth.uid == resource.data.senderId);
+            }
+            
+            // Règle par défaut: refuser tout accès non explicitement autorisé
+            match /{document=**} {
+              allow read, write: if false;
+            }
+          }
+        }
+        */
 
-        // CONSTANTES DE CONFIGURATION
-        // REMPLACEZ CES VALEURS PAR VOS PROPRES CONFIGURATIONS
-
+        // =====================================================
+        // CONFIGURATION
+        // =====================================================
+        
         // Configuration Firebase
         // À obtenir depuis la console Firebase : Project Settings > General > Your apps
         const CONST_FIREBASE_CONFIG = {
@@ -942,45 +984,7 @@
         const CONST_CLOUDINARY_PRESET = "privcon_upload"; // Upload preset non signé
 
         // =====================================================
-        // RÈGLES DE SÉCURITÉ FIRESTORE (À COPIER DANS LA CONSOLE FIREBASE)
-        // =====================================================
-        /*
-        rules_version = '2';
-        service cloud.firestore {
-          match /databases/{database}/documents {
-
-            // 1. Les Utilisateurs peuvent lire la liste des utilisateurs, mais ne peuvent modifier que leur propre profil
-            match /users/{userId} {
-              allow read: if request.auth != null; // Tous les utilisateurs connectés peuvent lire
-              allow create: if request.auth != null; // Autorise la création lors de l'inscription
-              allow update: if request.auth.uid == userId; // Autorise l'update uniquement par le propriétaire
-            }
-
-            // 2. Les Chats (Conversations)
-            match /chats/{chatId} {
-              // Si le document de chat n'existe pas (règle spécifique), le créer est autorisé
-              allow create: if request.auth != null;
-              allow read, update: if get(/databases/$(database)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true;
-
-              // 3. Les Messages (sous-collection des Chats)
-              match /messages/{messageId} {
-                // Seuls les participants de la conversation mère peuvent lire/écrire des messages
-                allow read, create: if get(/databases/$(database)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true;
-                // Pas de suppression ou de modification de messages une fois envoyés (standard chat)
-              }
-            }
-
-            // 4. Les Groupes (Similaire aux chats)
-            match /groups/{groupId} {
-              allow read, update: if request.auth != null && resource.data.members[request.auth.uid] == true;
-              allow create: if request.auth != null;
-            }
-          }
-        }
-        */
-
-        // =====================================================
-        // INITIALISATION DE L'APPLICATION
+        // INITIALISATION
         // =====================================================
 
         // Initialisation de Firebase
@@ -994,10 +998,6 @@
         let isRecording = false;
         let mediaRecorder = null;
         let audioChunks = [];
-        let friends = [];
-        let chats = [];
-        let groups = [];
-        let friendRequests = [];
 
         // Éléments DOM
         const authContainer = document.getElementById('auth-container');
@@ -1014,7 +1014,6 @@
         const userProfilePic = document.getElementById('user-profile-pic');
         const userName = document.getElementById('user-name');
         const onlineIndicator = document.getElementById('online-indicator');
-        const searchInput = document.getElementById('search-input');
         const tabs = document.querySelectorAll('.tab');
         const chatList = document.getElementById('chat-list');
         const friendsList = document.getElementById('friends-list');
@@ -1109,6 +1108,20 @@
                 } else {
                     showAuth();
                 }
+            });
+
+            // Charger le thème sauvegardé
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-theme');
+                themeToggle.querySelector('i').classList.remove('fa-moon');
+                themeToggle.querySelector('i').classList.add('fa-sun');
+            }
+
+            // Ajustement automatique de la hauteur du textarea
+            messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
             });
         }
 
@@ -1264,10 +1277,8 @@
                 chatList.style.display = 'block';
             } else if (tabName === 'friends') {
                 friendsList.style.display = 'block';
-                loadFriendsList();
             } else if (tabName === 'groups') {
                 groupsList.style.display = 'block';
-                loadGroupsList();
             }
         }
 
@@ -1595,72 +1606,8 @@
         // FONCTIONS DE GESTION DES AMIS ET GROUPES
         // =====================================================
 
-        function loadFriendsList() {
-            // Cette fonction chargerait la liste d'amis depuis Firestore
-            // Pour l'instant, nous allons simuler des données
-            friendsList.innerHTML = '';
-            
-            // Exemple de données d'amis
-            const sampleFriends = [
-                { id: '1', name: 'Jean Dupont', status: 'En ligne', lastSeen: null },
-                { id: '2', name: 'Marie Martin', status: 'Vu à 15:30', lastSeen: '15:30' },
-                { id: '3', name: 'Pierre Leroy', status: 'En ligne', lastSeen: null }
-            ];
-            
-            sampleFriends.forEach(friend => {
-                const friendItem = document.createElement('li');
-                friendItem.className = 'friend-item';
-                friendItem.innerHTML = `
-                    <div class="profile-container">
-                        <img src="https://via.placeholder.com/50" alt="Photo de profil" class="profile-pic">
-                        <div class="online-indicator" style="background-color: ${friend.status === 'En ligne' ? '#42B72A' : '#65676B'}"></div>
-                    </div>
-                    <div class="friend-info">
-                        <div class="friend-name">${friend.name}</div>
-                        <div class="friend-status">${friend.status}</div>
-                    </div>
-                `;
-                
-                friendItem.addEventListener('click', () => {
-                    // Ouvrir une conversation avec cet ami
-                    openChat(friend.id, friend.name, 'https://via.placeholder.com/50', friend.status === 'En ligne');
-                });
-                
-                friendsList.appendChild(friendItem);
-            });
-        }
-
-        function loadGroupsList() {
-            // Cette fonction chargerait la liste des groupes depuis Firestore
-            // Pour l'instant, nous allons simuler des données
-            groupsList.innerHTML = '';
-            
-            // Exemple de données de groupes
-            const sampleGroups = [
-                { id: '1', name: 'Famille', members: '5 membres', image: 'https://via.placeholder.com/50' },
-                { id: '2', name: 'Travail', members: '12 membres', image: 'https://via.placeholder.com/50' },
-                { id: '3', name: 'Amis Proches', members: '8 membres', image: 'https://via.placeholder.com/50' }
-            ];
-            
-            sampleGroups.forEach(group => {
-                const groupItem = document.createElement('li');
-                groupItem.className = 'group-item';
-                groupItem.innerHTML = `
-                    <img src="${group.image}" alt="Photo de groupe" class="group-avatar">
-                    <div class="group-info">
-                        <div class="group-name">${group.name}</div>
-                        <div class="group-members">${group.members}</div>
-                    </div>
-                `;
-                
-                groupItem.addEventListener('click', () => {
-                    // Ouvrir la conversation de groupe
-                    openChat(group.id, group.name, group.image, false, true);
-                });
-                
-                groupsList.appendChild(groupItem);
-            });
-        }
+        // SUPPRESSION: Toutes les données simulées ont été supprimées
+        // Les listes affichent maintenant des états vides
 
         function openChat(chatId, chatName, chatImage, isOnline, isGroup = false) {
             currentChat = {
@@ -1693,28 +1640,16 @@
             // Vider le conteneur de messages
             messagesContainer.innerHTML = '';
             
-            // Simuler des messages pour la démonstration
-            const sampleMessages = [
-                { id: '1', senderId: 'other', text: 'Salut, comment ça va ?', timestamp: '10:30', status: 'read' },
-                { id: '2', senderId: 'current', text: 'Ça va bien, merci ! Et toi ?', timestamp: '10:31', status: 'read' },
-                { id: '3', senderId: 'other', text: 'Très bien aussi. Tu as vu le nouveau projet ?', timestamp: '10:32', status: 'read' },
-                { id: '4', senderId: 'current', text: 'Oui, il a l\'air super !', timestamp: '10:33', status: 'read' }
-            ];
-            
-            sampleMessages.forEach(message => {
-                const messageElement = document.createElement('div');
-                messageElement.className = `message ${message.senderId === 'current' ? 'message-sent' : 'message-received'}`;
-                
-                messageElement.innerHTML = `
-                    <div class="message-text">${message.text}</div>
-                    <div class="message-time">${message.timestamp}</div>
-                `;
-                
-                messagesContainer.appendChild(messageElement);
-            });
-            
-            // Faire défiler vers le bas pour voir les derniers messages
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            // Dans une application réelle, charger les messages depuis Firestore
+            // Pour l'instant, afficher un message d'information
+            const infoMessage = document.createElement('div');
+            infoMessage.className = 'empty-state';
+            infoMessage.innerHTML = `
+                <i class="fas fa-comment-slash"></i>
+                <p>Aucun message dans cette conversation</p>
+                <p>Soyez le premier à envoyer un message !</p>
+            `;
+            messagesContainer.appendChild(infoMessage);
         }
 
         // =====================================================
@@ -1771,40 +1706,37 @@
                 }
             });
             
-            // Écouter les demandes d'amis
-            db.collection('friendRequests')
-                .where('receiverId', '==', currentUser.uid)
-                .where('status', '==', 'pending')
-                .onSnapshot(snapshot => {
-                    friendRequests = [];
-                    snapshot.forEach(doc => {
-                        friendRequests.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    // Afficher une notification si il y a de nouvelles demandes
-                    if (friendRequests.length > 0) {
-                        showNotification(`Vous avez ${friendRequests.length} nouvelle(s) demande(s) d'ami`, 'info');
-                    }
-                });
-            
             // Écouter les conversations
             db.collection('chats')
                 .where('participants', 'array-contains', currentUser.uid)
                 .onSnapshot(snapshot => {
-                    chats = [];
-                    snapshot.forEach(doc => {
-                        chats.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    // Mettre à jour la liste des discussions
-                    updateChatList();
+                    updateChatList(snapshot);
                 });
         }
 
-        function updateChatList() {
+        function updateChatList(snapshot) {
+            // Vider la liste des chats
+            const existingEmptyState = chatList.querySelector('.empty-state');
+            if (existingEmptyState) {
+                existingEmptyState.remove();
+            }
+            
             chatList.innerHTML = '';
             
-            chats.forEach(chat => {
+            if (snapshot.empty) {
+                // Afficher l'état vide
+                const emptyState = document.createElement('div');
+                emptyState.className = 'empty-state';
+                emptyState.innerHTML = `
+                    <i class="fas fa-comments"></i>
+                    <p>Aucune conversation</p>
+                `;
+                chatList.appendChild(emptyState);
+                return;
+            }
+            
+            snapshot.forEach(doc => {
+                const chat = { id: doc.id, ...doc.data() };
                 const chatItem = document.createElement('li');
                 chatItem.className = 'chat-item';
                 
@@ -1876,24 +1808,6 @@
             
             return date.toLocaleDateString();
         }
-
-        // =====================================================
-        // INITIALISATION DU THÈME
-        // =====================================================
-
-        // Charger le thème sauvegardé
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark') {
-            document.body.classList.add('dark-theme');
-            themeToggle.querySelector('i').classList.remove('fa-moon');
-            themeToggle.querySelector('i').classList.add('fa-sun');
-        }
-
-        // Ajustement automatique de la hauteur du textarea
-        messageInput.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
     </script>
 </body>
 </html>
