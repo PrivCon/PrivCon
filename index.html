@@ -930,13 +930,50 @@
             color: var(--text-secondary);
         }
 
+        /* Barre de navigation mobile */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .mobile-nav-items {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+        }
+
+        .mobile-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .mobile-nav-item.active {
+            color: var(--primary-color);
+        }
+
+        .mobile-nav-icon {
+            font-size: 20px;
+        }
+
         /* Styles responsifs */
         @media (max-width: 768px) {
             .sidebar {
                 position: absolute;
                 left: 0;
                 top: 70px;
-                height: calc(100vh - 70px);
+                height: calc(100vh - 130px);
                 z-index: 100;
                 transform: translateX(-100%);
                 transition: transform 0.3s;
@@ -958,6 +995,14 @@
 
             .message {
                 max-width: 85%;
+            }
+
+            .mobile-nav {
+                display: block;
+            }
+
+            .main-container {
+                height: calc(100vh - 130px);
             }
         }
 
@@ -1146,7 +1191,7 @@
                     <button class="attachment-btn" id="attachment-btn">
                         <i class="fas fa-paperclip"></i>
                     </button>
-                    <input type="file" id="file-input" style="display: none;" accept="image/*,video/*">
+                    <input type="file" id="file-input" style="display: none;" accept="image/*,video/*,audio/*">
                     
                     <div class="recording-indicator" id="recording-indicator">
                         <div class="recording-dot"></div>
@@ -1164,6 +1209,32 @@
                 </div>
             </main>
         </div>
+
+        <!-- Barre de navigation mobile -->
+        <nav class="mobile-nav glass">
+            <div class="mobile-nav-items">
+                <div class="mobile-nav-item active" data-tab="chats">
+                    <i class="fas fa-comments mobile-nav-icon"></i>
+                    <span>Messages</span>
+                </div>
+                <div class="mobile-nav-item" data-tab="friends">
+                    <i class="fas fa-users mobile-nav-icon"></i>
+                    <span>Amis</span>
+                </div>
+                <div class="mobile-nav-item" data-tab="groups">
+                    <i class="fas fa-user-friends mobile-nav-icon"></i>
+                    <span>Groupes</span>
+                </div>
+                <div class="mobile-nav-item" data-tab="notifications">
+                    <i class="fas fa-bell mobile-nav-icon"></i>
+                    <span>Notifications</span>
+                </div>
+                <div class="mobile-nav-item" id="mobile-profile-btn">
+                    <i class="fas fa-user mobile-nav-icon"></i>
+                    <span>Profil</span>
+                </div>
+            </div>
+        </nav>
     </div>
 
     <!-- Modale de profil utilisateur -->
@@ -1243,34 +1314,6 @@
         </div>
     </div>
 
-    <!-- Modale de création de groupe -->
-    <div id="create-group-modal" class="modal">
-        <div class="modal-content glass">
-            <div class="modal-header">
-                <h2 class="modal-title">Créer un groupe</h2>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="group-name">Nom du groupe</label>
-                    <input type="text" id="group-name" placeholder="Nom du groupe">
-                </div>
-                <div class="form-group">
-                    <label for="group-description">Description</label>
-                    <textarea id="group-description" placeholder="Description du groupe" rows="3"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="group-image">Image du groupe (optionnel)</label>
-                    <input type="file" id="group-image" accept="image/*">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn" id="cancel-group-btn">Annuler</button>
-                <button class="btn btn-primary" id="create-group-btn">Créer</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Interface d'enregistrement vocal avancée -->
     <div class="voice-recording-overlay" id="voice-recording-overlay">
         <div class="voice-recording-container">
@@ -1310,7 +1353,6 @@
                 <button class="filter-btn" data-filter="normal">Normal</button>
                 <button class="filter-btn" data-filter="grayscale">Noir & Blanc</button>
                 <button class="filter-btn" data-filter="sepia">Sépia</button>
-                <button class="filter-btn" data-filter="crop">Recadrer</button>
             </div>
             <div class="modal-footer">
                 <button class="btn" id="cancel-media-btn">Annuler</button>
@@ -1329,7 +1371,7 @@
         </div>
         <div class="call-controls">
             <button class="call-btn call-mute" id="call-mute-btn">
-                <i class="fas fa-microphone-slash"></i>
+                <i class="fas fa-microphone"></i>
             </button>
             <button class="call-btn call-end" id="call-end-btn">
                 <i class="fas fa-phone-slash"></i>
@@ -1367,36 +1409,44 @@
         rules_version = '2';
         service cloud.firestore {
           match /databases/{database}/documents {
-
-            // 1. Profils (Lecture publique pour la recherche, Écriture privée)
+            // Règles pour les utilisateurs
             match /users/{userId} {
-              allow read; 
-              allow write: if request.auth.uid == userId;
+              allow read: if true;
+              allow write: if request.auth != null && request.auth.uid == userId;
             }
-
-            // 2. Chats : Seuls les membres peuvent lire/écrire
+            
+            // Règles pour les conversations
             match /chats/{chatId} {
-                // La règle doit vérifier que l'UID de l'utilisateur fait partie des membres du chat
-                // (En supposant que le chat document contient un tableau 'members' [uid1, uid2])
-                allow read, write: if exists(/databases/$(database)/documents/chats/$(chatId)) 
-                                   && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+              allow read, write: if request.auth != null && 
+                request.auth.uid in resource.data.participants;
+              allow create: if request.auth != null && 
+                request.auth.uid in request.resource.data.participants;
             }
             
-            // 3. Demandes d'amis
+            // Règles pour les messages
+            match /chats/{chatId}/messages/{messageId} {
+              allow read, write: if request.auth != null && 
+                request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+            }
+            
+            // Règles pour les demandes d'amis
             match /friend_requests/{requestId} {
-              allow read, write: if request.auth.uid != null; // Simplicité, lecture/écriture par l'utilisateur connecté
+              allow read, write: if request.auth != null && 
+                (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
+              allow create: if request.auth != null && 
+                (request.auth.uid == request.resource.data.from);
             }
             
-            // 4. Notifications : Seul le destinataire peut lire et supprimer
-            match /notifications/{userId} {
-              allow read, delete: if request.auth.uid == userId;
-              allow write: if request.auth.uid != null; // N'importe qui peut créer une notification pour un autre (si l'autre est le destinataire)
+            // Règles pour les notifications
+            match /notifications/{notificationId} {
+              allow read, write: if request.auth != null && 
+                request.auth.uid == resource.data.toId;
+              allow create: if request.auth != null;
             }
-
-            // 5. Signalisation d'appels
+            
+            // Règles pour les appels
             match /calls/{callId} {
-              // Les règles d'appel peuvent être ouvertes au début pour le test
-              allow read, write: if request.auth.uid != null;
+              allow read, write: if request.auth != null;
             }
           }
         }
@@ -1423,33 +1473,14 @@
         const CONST_CLOUDINARY_PRESET = "privcon_upload"; // Upload preset non signé
 
         // Configuration STUN (WebRTC)
-        const CONST_STUN_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
-
-        // =====================================================
-        // INSTRUCTIONS D'INDEXATION FIRESTORE
-        // =====================================================
-        /*
-        POUR LA RECHERCHE D'UTILISATEURS, VOUS DEVEZ CRÉER UN INDEX COMPOSÉ DANS FIRESTORE :
-        
-        1. Allez dans la console Firebase > Firestore Database > Indexes
-        2. Cliquez sur "Create Index"
-        3. Collection ID: users
-        4. Fields:
-           - Field: username, Order: Ascending
-           - Field: username, Order: Ascending (pour la recherche par préfixe)
-        5. Query scope: Collection
-        6. Cliquez sur "Create"
-        
-        Cet index permettra la recherche par préfixe avec la requête:
-        .where('username', '>=', query).where('username', '<=', query + '\uf8ff')
-        */
+        const STUN_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
 
         // =====================================================
         // INITIALISATION
         // =====================================================
 
         // Initialisation de Firebase
-        firebase.initializeApp(CONST_FIREBASE_CONFIG);
+        firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
@@ -1471,6 +1502,7 @@
         let lastX = 0;
         let lastY = 0;
         let notificationsCount = 0;
+        let friendshipListener = null;
 
         // Éléments DOM
         const authContainer = document.getElementById('auth-container');
@@ -1561,6 +1593,8 @@
         const acceptCallBtn = document.getElementById('accept-call-btn');
         const incomingCallUser = document.getElementById('incoming-call-user');
         const incomingCallType = document.getElementById('incoming-call-type');
+        const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
+        const mobileProfileBtn = document.getElementById('mobile-profile-btn');
 
         // Initialisation de l'application
         document.addEventListener('DOMContentLoaded', initApp);
@@ -1653,6 +1687,14 @@
             // Gestionnaire d'événement pour le menu mobile
             menuToggle.addEventListener('click', toggleSidebar);
             
+            // Gestionnaire d'événements pour la navigation mobile
+            mobileNavItems.forEach(item => {
+                if (item.dataset.tab) {
+                    item.addEventListener('click', () => switchTab(item.dataset.tab));
+                }
+            });
+            mobileProfileBtn.addEventListener('click', showProfileModal);
+            
             // Écouteur pour la déconnexion
             window.addEventListener('beforeunload', () => {
                 if (currentUser) {
@@ -1672,6 +1714,7 @@
                     setupRealtimeListeners();
                     updateUserStatus(true);
                     initializePeer();
+                    initializeLocalStream();
                 } else {
                     showAuth();
                 }
@@ -1693,7 +1736,7 @@
         }
 
         // =====================================================
-        // FONCTIONS D'AUTHENTIFICATION (CORRIGÉES)
+        // FONCTIONS D'AUTHENTIFICATION
         // =====================================================
 
         function showRegisterForm() {
@@ -1738,7 +1781,6 @@
                 .then((userCredential) => {
                     const user = userCredential.user;
                     
-                    // CORRECTION: Utiliser set() avec merge: true pour créer ou mettre à jour le profil
                     return db.collection('users').doc(user.uid).set({
                         uid: user.uid,
                         username: username,
@@ -1766,7 +1808,6 @@
                 .then((result) => {
                     const user = result.user;
                     
-                    // CORRECTION: Utiliser set() avec merge: true pour créer ou mettre à jour le profil
                     return db.collection('users').doc(user.uid).set({
                         uid: user.uid,
                         username: user.displayName || user.email.split('@')[0],
@@ -1840,6 +1881,15 @@
                 }
             });
             
+            // Mettre à jour la navigation mobile
+            mobileNavItems.forEach(item => {
+                if (item.dataset.tab === tabName) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+            
             // Afficher le contenu approprié
             document.querySelectorAll('.tab-content > *').forEach(content => {
                 content.style.display = 'none';
@@ -1849,12 +1899,12 @@
                 chatList.style.display = 'block';
             } else if (tabName === 'friends') {
                 friendsList.style.display = 'block';
+                loadFriendsList();
             } else if (tabName === 'groups') {
                 groupsList.style.display = 'block';
-            } else if (tabName === 'search') {
-                searchResults.style.display = 'block';
             } else if (tabName === 'notifications') {
                 notificationsList.style.display = 'block';
+                loadNotifications();
             }
         }
 
@@ -1863,7 +1913,7 @@
         }
 
         // =====================================================
-        // FONCTIONS DE GESTION DES UTILISATEURS (CORRIGÉES)
+        // FONCTIONS DE GESTION DES UTILISATEURS
         // =====================================================
 
         function setupUserData() {
@@ -1898,7 +1948,6 @@
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp()
             };
             
-            // CORRECTION: Utiliser set() avec merge pour éviter "No document to update"
             db.collection('users').doc(currentUser.uid).set(statusUpdate, { merge: true })
                 .catch(error => {
                     console.error('Erreur lors de la mise à jour du statut:', error);
@@ -1938,7 +1987,6 @@
                         showNotification('Erreur lors de la mise à jour du profil: ' + error.message, 'error');
                     });
             } else {
-                // CORRECTION: Utiliser set() avec merge pour éviter "No document to update"
                 db.collection('users').doc(currentUser.uid).set(updates, { merge: true })
                     .then(() => {
                         showNotification('Profil mis à jour avec succès', 'success');
@@ -1952,7 +2000,7 @@
         }
 
         // =====================================================
-        // FONCTIONS DE RECHERCHE ET D'AMITIÉ (CORRIGÉES)
+        // FONCTIONS DE RECHERCHE ET D'AMITIÉ
         // =====================================================
 
         function performSearch() {
@@ -2021,7 +2069,7 @@
             userDetailsJoined.textContent = user.dateJoined ? user.dateJoined.toDate().toLocaleDateString() : 'Date inconnue';
             userDetailsStatus.textContent = user.isOnline ? 'En ligne' : 'Hors ligne';
             
-            // CORRECTION: Vérifier l'état de la relation d'amitié
+            // Vérifier l'état de la relation d'amitié
             checkFriendshipStatus(currentUser.uid, user.uid);
             
             userDetailsModal.style.display = 'flex';
@@ -2033,73 +2081,88 @@
             acceptFriendBtn.style.display = 'none';
             pendingFriendBtn.style.display = 'none';
             
-            // Vérifier s'il existe une demande d'amitié entre ces utilisateurs
-            db.collection('friend_requests')
+            // Arrêter l'écouteur précédent s'il existe
+            if (friendshipListener) {
+                friendshipListener();
+            }
+            
+            // Écouter en temps réel les changements de statut d'amitié
+            friendshipListener = db.collection('friend_requests')
                 .where('from', 'in', [userA, userB])
                 .where('to', 'in', [userA, userB])
-                .get()
-                .then(snapshot => {
+                .onSnapshot(snapshot => {
                     if (snapshot.empty) {
                         // Aucune demande d'amitié - afficher "Ajouter en ami"
                         addFriendBtn.style.display = 'block';
+                        acceptFriendBtn.style.display = 'none';
+                        pendingFriendBtn.style.display = 'none';
                     } else {
+                        let hasPendingRequest = false;
+                        let isCurrentUserSender = false;
+                        
                         snapshot.forEach(doc => {
                             const request = doc.data();
                             if (request.status === 'pending') {
-                                if (request.from === currentUser.uid) {
-                                    // L'utilisateur actuel a envoyé une demande en attente
-                                    pendingFriendBtn.style.display = 'block';
-                                } else {
-                                    // L'utilisateur actuel a reçu une demande en attente
-                                    acceptFriendBtn.style.display = 'block';
-                                }
+                                hasPendingRequest = true;
+                                isCurrentUserSender = request.from === currentUser.uid;
                             } else if (request.status === 'accepted') {
-                                // Ils sont déjà amis - afficher "Envoyer message"
+                                // Ils sont déjà amis
                                 addFriendBtn.style.display = 'none';
                                 acceptFriendBtn.style.display = 'none';
                                 pendingFriendBtn.style.display = 'none';
+                                return;
                             }
                         });
+                        
+                        if (hasPendingRequest) {
+                            if (isCurrentUserSender) {
+                                // L'utilisateur actuel a envoyé une demande en attente
+                                pendingFriendBtn.style.display = 'block';
+                                addFriendBtn.style.display = 'none';
+                                acceptFriendBtn.style.display = 'none';
+                            } else {
+                                // L'utilisateur actuel a reçu une demande en attente
+                                acceptFriendBtn.style.display = 'block';
+                                addFriendBtn.style.display = 'none';
+                                pendingFriendBtn.style.display = 'none';
+                            }
+                        }
                     }
-                })
-                .catch(error => {
+                }, error => {
                     console.error('Erreur lors de la vérification de l\'état d\'amitié:', error);
                 });
         }
 
         function sendMessageFromProfile() {
-            const userDetailsName = document.getElementById('user-details-name').textContent;
-            const userDetailsPic = document.getElementById('user-details-pic').src;
+            const targetUserId = document.getElementById('user-details-email').getAttribute('data-uid');
+            const targetUserName = document.getElementById('user-details-name').textContent;
             
             // Fermer la modale
             closeAllModals();
             
             // Ouvrir une conversation avec cet utilisateur
-            // Dans une application réelle, nous créerions ou chargerions la conversation appropriée
-            showNotification(`Ouverture d'une conversation avec ${userDetailsName}`, 'info');
+            openChat(targetUserId, targetUserName);
         }
 
         function addFriendFromProfile() {
-            const userDetailsName = document.getElementById('user-details-name').textContent;
-            const userDetailsId = document.getElementById('user-details-email').textContent; // En réalité, nous devrions stocker l'ID utilisateur
+            const targetUserId = document.getElementById('user-details-email').getAttribute('data-uid');
+            const targetUserName = document.getElementById('user-details-name').textContent;
             
             // Créer une demande d'amitié
             db.collection('friend_requests').add({
                 from: currentUser.uid,
-                to: userDetailsId, // Ici, nous devrions utiliser l'ID réel de l'utilisateur
+                to: targetUserId,
                 status: 'pending',
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             })
             .then(() => {
-                showNotification(`Demande d'ami envoyée à ${userDetailsName}`, 'success');
-                addFriendBtn.style.display = 'none';
-                pendingFriendBtn.style.display = 'block';
+                showNotification(`Demande d'ami envoyée à ${targetUserName}`, 'success');
                 
                 // Créer une notification pour l'utilisateur cible
                 createNotification(
-                    userDetailsId,
+                    targetUserId,
                     'friend_request',
-                    `${currentUser.displayName || currentUser.email} vous a envoyé une invitation d'amitié`,
+                    `${userName.textContent} vous a envoyé une invitation d'amitié`,
                     currentUser.uid
                 );
             })
@@ -2109,43 +2172,125 @@
         }
 
         function acceptFriendFromProfile() {
-            const userDetailsName = document.getElementById('user-details-name').textContent;
-            const userDetailsId = document.getElementById('user-details-email').textContent; // En réalité, nous devrions stocker l'ID utilisateur
+            const targetUserId = document.getElementById('user-details-email').getAttribute('data-uid');
+            const targetUserName = document.getElementById('user-details-name').textContent;
             
             // Accepter la demande d'amitié
             db.collection('friend_requests')
-                .where('from', '==', userDetailsId)
+                .where('from', '==', targetUserId)
                 .where('to', '==', currentUser.uid)
                 .where('status', '==', 'pending')
                 .get()
                 .then(snapshot => {
                     if (!snapshot.empty) {
+                        const batch = db.batch();
+                        
                         snapshot.forEach(doc => {
-                            doc.ref.update({
+                            batch.update(doc.ref, {
                                 status: 'accepted',
                                 acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
                             });
                         });
                         
-                        showNotification(`Vous êtes maintenant ami avec ${userDetailsName}`, 'success');
-                        acceptFriendBtn.style.display = 'none';
-                        
-                        // Créer une notification pour l'utilisateur qui a envoyé la demande
-                        createNotification(
-                            userDetailsId,
-                            'friend_accepted',
-                            `${currentUser.displayName || currentUser.email} a accepté votre invitation d'amitié`,
-                            currentUser.uid
-                        );
+                        return batch.commit();
                     }
+                })
+                .then(() => {
+                    showNotification(`Vous êtes maintenant ami avec ${targetUserName}`, 'success');
+                    
+                    // Créer une notification pour l'utilisateur qui a envoyé la demande
+                    createNotification(
+                        targetUserId,
+                        'friend_accepted',
+                        `${userName.textContent} a accepté votre invitation d'amitié`,
+                        currentUser.uid
+                    );
                 })
                 .catch(error => {
                     showNotification('Erreur lors de l\'acceptation de la demande d\'ami: ' + error.message, 'error');
                 });
         }
 
+        function loadFriendsList() {
+            friendsList.innerHTML = '';
+            
+            // Récupérer les amis (demandes acceptées)
+            db.collection('friend_requests')
+                .where('status', '==', 'accepted')
+                .where('from', '==', currentUser.uid)
+                .get()
+                .then(snapshot => {
+                    const friendPromises = [];
+                    
+                    snapshot.forEach(doc => {
+                        const request = doc.data();
+                        friendPromises.push(
+                            db.collection('users').doc(request.to).get()
+                        );
+                    });
+                    
+                    // Récupérer également les demandes où l'utilisateur actuel est le destinataire
+                    return Promise.all(friendPromises).then(() => {
+                        return db.collection('friend_requests')
+                            .where('status', '==', 'accepted')
+                            .where('to', '==', currentUser.uid)
+                            .get();
+                    });
+                })
+                .then(snapshot => {
+                    const friendPromises = [];
+                    
+                    snapshot.forEach(doc => {
+                        const request = doc.data();
+                        friendPromises.push(
+                            db.collection('users').doc(request.from).get()
+                        );
+                    });
+                    
+                    return Promise.all(friendPromises);
+                })
+                .then(friendDocs => {
+                    if (friendDocs.length === 0) {
+                        friendsList.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-users"></i>
+                                <p>Aucun ami</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    friendDocs.forEach(doc => {
+                        if (doc.exists) {
+                            const friend = doc.data();
+                            const friendItem = document.createElement('li');
+                            friendItem.className = 'friend-item';
+                            friendItem.innerHTML = `
+                                <div class="profile-container">
+                                    <img src="${friend.photoURL || 'https://via.placeholder.com/50'}" alt="Photo de profil" class="profile-pic">
+                                    <div class="online-indicator" style="background-color: ${friend.isOnline ? '#42B72A' : '#65676B'}"></div>
+                                </div>
+                                <div class="friend-info">
+                                    <div class="friend-name">${friend.username}</div>
+                                    <div class="friend-status">${friend.isOnline ? 'En ligne' : 'Hors ligne'}</div>
+                                </div>
+                            `;
+                            
+                            friendItem.addEventListener('click', () => {
+                                openChat(friend.uid, friend.username);
+                            });
+                            
+                            friendsList.appendChild(friendItem);
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement de la liste d\'amis:', error);
+                });
+        }
+
         // =====================================================
-        // FONCTIONS DE MESSAGERIE (CORRIGÉES)
+        // FONCTIONS DE MESSAGERIE
         // =====================================================
 
         function sendMessage() {
@@ -2157,50 +2302,29 @@
                 senderId: currentUser.uid,
                 text: messageText,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                status: 'sent' // Statut initial
+                status: 'sent'
             };
             
-            // CORRECTION: Vérifier si le chat existe avant d'envoyer un message
-            const chatRef = db.collection('chats').doc(currentChat.id);
-            
-            chatRef.get().then(doc => {
-                if (!doc.exists) {
-                    // Créer le chat s'il n'existe pas
-                    return chatRef.set({
-                        participants: [currentUser.uid, currentChat.otherUserId],
+            // Ajouter le message à la collection de messages du chat
+            db.collection('chats').doc(currentChat.id).collection('messages').add(message)
+                .then(() => {
+                    // Mettre à jour le dernier message de la conversation
+                    return db.collection('chats').doc(currentChat.id).update({
                         lastMessage: messageText,
-                        lastMessageTime: message.timestamp,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }).then(() => {
-                        // Ajouter le message après avoir créé le chat
-                        return chatRef.collection('messages').add(message);
+                        lastMessageTime: message.timestamp
                     });
-                } else {
-                    // Le chat existe, ajouter simplement le message
-                    return chatRef.collection('messages').add(message);
-                }
-            })
-            .then(() => {
-                // Mettre à jour le dernier message de la conversation
-                return chatRef.update({
-                    lastMessage: messageText,
-                    lastMessageTime: message.timestamp
+                })
+                .then(() => {
+                    // Réinitialiser le champ de message
+                    messageInput.value = '';
+                    messageInput.style.height = 'auto';
+                })
+                .catch(error => {
+                    showNotification('Erreur lors de l\'envoi du message: ' + error.message, 'error');
                 });
-            })
-            .then(() => {
-                // Réinitialiser le champ de message
-                messageInput.value = '';
-                
-                // Ajuster la hauteur du textarea
-                messageInput.style.height = 'auto';
-            })
-            .catch(error => {
-                showNotification('Erreur lors de l\'envoi du message: ' + error.message, 'error');
-            });
         }
 
-        // CORRECTION: Fonction unique pour ouvrir un chat
-        function openChat(otherUserId) {
+        function openChat(otherUserId, otherUserName = 'Utilisateur') {
             // Générer un ID de chat unique basé sur les IDs des utilisateurs
             const chatId = [currentUser.uid, otherUserId].sort().join('_');
             
@@ -2211,7 +2335,12 @@
                 if (!doc.exists) {
                     // Créer le chat s'il n'existe pas
                     return chatRef.set({
+                        id: chatId,
                         participants: [currentUser.uid, otherUserId],
+                        participantNames: {
+                            [currentUser.uid]: userName.textContent,
+                            [otherUserId]: otherUserName
+                        },
                         lastMessage: '',
                         lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -2222,14 +2351,15 @@
                 // Maintenant, ouvrir le chat
                 currentChat = {
                     id: chatId,
-                    otherUserId: otherUserId
+                    otherUserId: otherUserId,
+                    name: otherUserName
                 };
                 
                 // Charger les messages
                 loadChatMessages(chatId);
                 
                 // Mettre à jour l'interface
-                updateChatUI();
+                updateChatUI(otherUserName);
                 
                 // Écouter les nouveaux messages en temps réel
                 setupChatListener(chatId);
@@ -2239,11 +2369,9 @@
             });
         }
 
-        function updateChatUI() {
-            // Mettre à jour l'en-tête du chat avec les informations de l'autre utilisateur
-            // Cette fonction devrait récupérer les données de l'utilisateur à partir de son ID
-            // Pour l'instant, nous utilisons des valeurs par défaut
-            chatUserName.textContent = 'Utilisateur';
+        function updateChatUI(otherUserName) {
+            // Mettre à jour l'en-tête du chat
+            chatUserName.textContent = otherUserName;
             chatUserPic.src = 'https://via.placeholder.com/40';
             chatUserStatus.textContent = 'En ligne';
             chatOnlineIndicator.style.display = 'block';
@@ -2261,6 +2389,64 @@
                 });
         }
 
+        function loadChatMessages(chatId) {
+            messagesContainer.innerHTML = '';
+            
+            db.collection('chats').doc(chatId).collection('messages')
+                .orderBy('timestamp', 'asc')
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        const infoMessage = document.createElement('div');
+                        infoMessage.className = 'empty-state';
+                        infoMessage.innerHTML = `
+                            <i class="fas fa-comment-slash"></i>
+                            <p>Aucun message dans cette conversation</p>
+                            <p>Soyez le premier à envoyer un message !</p>
+                        `;
+                        messagesContainer.appendChild(infoMessage);
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const message = doc.data();
+                        displayMessage(message);
+                    });
+                    
+                    // Faire défiler vers le bas
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des messages:', error);
+                });
+        }
+
+        function displayMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${message.senderId === currentUser.uid ? 'message-sent' : 'message-received'}`;
+            
+            let messageContent = '';
+            
+            if (message.text) {
+                messageContent = `<div>${message.text}</div>`;
+            } else if (message.mediaUrl) {
+                if (message.mediaType === 'image') {
+                    messageContent = `<img src="${message.mediaUrl}" alt="Image" class="message-media">`;
+                } else if (message.mediaType === 'video') {
+                    messageContent = `<video src="${message.mediaUrl}" controls class="message-media"></video>`;
+                } else if (message.mediaType === 'audio') {
+                    messageContent = `<audio src="${message.mediaUrl}" controls class="message-audio"></audio>`;
+                }
+            }
+            
+            messageElement.innerHTML = `
+                ${messageContent}
+                <div class="message-time">${formatTime(message.timestamp)}</div>
+            `;
+            
+            messagesContainer.appendChild(messageElement);
+        }
+
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -2273,8 +2459,16 @@
                 mediaPreview.src = e.target.result;
                 
                 // Redimensionner le canvas pour correspondre à l'image
-                drawingCanvas.width = mediaPreview.width;
-                drawingCanvas.height = mediaPreview.height;
+                const img = new Image();
+                img.onload = function() {
+                    drawingCanvas.width = img.width;
+                    drawingCanvas.height = img.height;
+                    
+                    // Redessiner l'image sur le canvas pour l'édition
+                    const ctx = drawingCanvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = e.target.result;
                 
                 mediaEditContainer.style.display = 'flex';
                 // Réinitialiser le filtre
@@ -2306,12 +2500,18 @@
         function clearDrawing() {
             const ctx = drawingCanvas.getContext('2d');
             ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            
+            // Redessiner l'image d'origine
+            const img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = mediaPreview.src;
         }
 
         function startDrawing(e) {
             if (!isDrawing) return;
             
-            isDrawing = true;
             const rect = drawingCanvas.getBoundingClientRect();
             lastX = e.clientX - rect.left;
             lastY = e.clientY - rect.top;
@@ -2321,7 +2521,6 @@
             if (!isDrawing) return;
             
             e.preventDefault();
-            isDrawing = true;
             const rect = drawingCanvas.getBoundingClientRect();
             lastX = e.touches[0].clientX - rect.left;
             lastY = e.touches[0].clientY - rect.top;
@@ -2373,22 +2572,20 @@
         }
 
         function stopDrawing() {
-            isDrawing = false;
+            // Pas besoin de faire quoi que ce soit ici
         }
 
         function applyMediaFilter(filter) {
             currentMediaFilter = filter;
             
             // Retirer toutes les classes de filtre
-            mediaPreview.classList.remove('filter-grayscale', 'filter-sepia', 'filter-crop');
+            mediaPreview.classList.remove('filter-grayscale', 'filter-sepia');
             
             // Appliquer le filtre sélectionné
             if (filter === 'grayscale') {
                 mediaPreview.classList.add('filter-grayscale');
             } else if (filter === 'sepia') {
                 mediaPreview.classList.add('filter-sepia');
-            } else if (filter === 'crop') {
-                mediaPreview.classList.add('filter-crop');
             }
             
             // Mettre à jour les boutons de filtre
@@ -2416,95 +2613,78 @@
                 resourceType = 'image';
             } else if (currentMediaFile.type.startsWith('video/')) {
                 resourceType = 'video';
+            } else if (currentMediaFile.type.startsWith('audio/')) {
+                resourceType = 'video'; // Cloudinary traite l'audio comme vidéo
             }
             
             // Fusionner le dessin avec l'image
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            canvas.width = mediaPreview.naturalWidth || mediaPreview.videoWidth;
-            canvas.height = mediaPreview.naturalHeight || mediaPreview.videoHeight;
+            canvas.width = drawingCanvas.width;
+            canvas.height = drawingCanvas.height;
             
-            // Dessiner l'image originale
-            ctx.drawImage(mediaPreview, 0, 0, canvas.width, canvas.height);
+            // Dessiner l'image originale avec le filtre
+            ctx.filter = currentMediaFilter === 'grayscale' ? 'grayscale(100%)' : 
+                        currentMediaFilter === 'sepia' ? 'sepia(100%)' : 'none';
             
-            // Appliquer le filtre
-            if (currentMediaFilter === 'grayscale') {
-                ctx.filter = 'grayscale(100%)';
-                ctx.drawImage(canvas, 0, 0);
+            const img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 ctx.filter = 'none';
-            } else if (currentMediaFilter === 'sepia') {
-                ctx.filter = 'sepia(100%)';
-                ctx.drawImage(canvas, 0, 0);
-                ctx.filter = 'none';
-            }
-            
-            // Dessiner les annotations
-            ctx.drawImage(drawingCanvas, 0, 0, canvas.width, canvas.height);
-            
-            // Convertir en blob
-            canvas.toBlob(blob => {
-                // Créer un fichier à partir du blob
-                const editedFile = new File([blob], currentMediaFile.name, { type: currentMediaFile.type });
                 
-                // Téléverser le fichier vers Cloudinary
-                uploadToCloudinary(editedFile, resourceType)
-                    .then(result => {
-                        // Créer un message média
-                        const message = {
-                            senderId: currentUser.uid,
-                            mediaUrl: result.secure_url,
-                            mediaType: resourceType,
-                            filter: currentMediaFilter,
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                            status: 'sent'
-                        };
-                        
-                        // CORRECTION: Vérifier si le chat existe avant d'envoyer un message média
-                        const chatRef = db.collection('chats').doc(currentChat.id);
-                        
-                        return chatRef.get().then(doc => {
-                            if (!doc.exists) {
-                                // Créer le chat s'il n'existe pas
-                                return chatRef.set({
-                                    participants: [currentUser.uid, currentChat.otherUserId],
-                                    lastMessage: 'Fichier média',
-                                    lastMessageTime: message.timestamp,
-                                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                                }).then(() => {
-                                    // Ajouter le message après avoir créé le chat
-                                    return chatRef.collection('messages').add(message);
-                                });
-                            } else {
-                                // Le chat existe, ajouter simplement le message
-                                return chatRef.collection('messages').add(message);
+                // Dessiner les annotations
+                ctx.drawImage(drawingCanvas, 0, 0);
+                
+                // Convertir en blob
+                canvas.toBlob(blob => {
+                    // Créer un fichier à partir du blob
+                    const editedFile = new File([blob], currentMediaFile.name, { type: currentMediaFile.type });
+                    
+                    // Téléverser le fichier vers Cloudinary
+                    uploadToCloudinary(editedFile, resourceType)
+                        .then(result => {
+                            // Créer un message média
+                            const message = {
+                                senderId: currentUser.uid,
+                                mediaUrl: result.secure_url,
+                                mediaType: resourceType,
+                                filter: currentMediaFilter,
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                                status: 'sent'
+                            };
+                            
+                            // Ajouter le message média
+                            return db.collection('chats').doc(currentChat.id).collection('messages').add(message);
+                        })
+                        .then(() => {
+                            // Mettre à jour le dernier message de la conversation
+                            let lastMessage = 'Fichier média';
+                            if (resourceType === 'image') {
+                                lastMessage = '📷 Image';
+                            } else if (resourceType === 'video') {
+                                lastMessage = '🎥 Vidéo';
+                            } else if (resourceType === 'audio') {
+                                lastMessage = '🎤 Audio';
                             }
+                            
+                            return db.collection('chats').doc(currentChat.id).update({
+                                lastMessage: lastMessage,
+                                lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        })
+                        .then(() => {
+                            showNotification('Fichier envoyé avec succès', 'success');
+                            mediaEditContainer.style.display = 'none';
+                            currentMediaFile = null;
+                            clearDrawing();
+                        })
+                        .catch(error => {
+                            showNotification('Erreur lors de l\'envoi du fichier: ' + error.message, 'error');
                         });
-                    })
-                    .then(() => {
-                        // Mettre à jour le dernier message de la conversation
-                        let lastMessage = 'Fichier média';
-                        if (resourceType === 'image') {
-                            lastMessage = '📷 Image';
-                        } else if (resourceType === 'video') {
-                            lastMessage = '🎥 Vidéo';
-                        }
-                        
-                        return db.collection('chats').doc(currentChat.id).update({
-                            lastMessage: lastMessage,
-                            lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    })
-                    .then(() => {
-                        showNotification('Fichier envoyé avec succès', 'success');
-                        mediaEditContainer.style.display = 'none';
-                        currentMediaFile = null;
-                        clearDrawing();
-                    })
-                    .catch(error => {
-                        showNotification('Erreur lors de l\'envoi du fichier: ' + error.message, 'error');
-                    });
-            }, currentMediaFile.type);
+                }, currentMediaFile.type);
+            };
+            img.src = mediaPreview.src;
         }
 
         // =====================================================
@@ -2652,26 +2832,8 @@
                         status: 'sent'
                     };
                     
-                    // CORRECTION: Vérifier si le chat existe avant d'envoyer un message audio
-                    const chatRef = db.collection('chats').doc(currentChat.id);
-                    
-                    return chatRef.get().then(doc => {
-                        if (!doc.exists) {
-                            // Créer le chat s'il n'existe pas
-                            return chatRef.set({
-                                participants: [currentUser.uid, currentChat.otherUserId],
-                                lastMessage: '🎤 Message audio',
-                                lastMessageTime: message.timestamp,
-                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                            }).then(() => {
-                                // Ajouter le message après avoir créé le chat
-                                return chatRef.collection('messages').add(message);
-                            });
-                        } else {
-                            // Le chat existe, ajouter simplement le message
-                            return chatRef.collection('messages').add(message);
-                        }
-                    });
+                    // Ajouter le message audio
+                    return db.collection('chats').doc(currentChat.id).collection('messages').add(message);
                 })
                 .then(() => {
                     // Mettre à jour le dernier message de la conversation
@@ -2696,10 +2858,10 @@
             return new Promise((resolve, reject) => {
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('upload_preset', CONST_CLOUDINARY_UPLOAD_PRESET);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
                 
                 // Utiliser l'endpoint auto/upload pour la détection automatique du type
-                fetch(`https://api.cloudinary.com/v1_1/${CONST_CLOUDINARY_CLOUD_NAME}/auto/upload`, {
+                fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
                     method: 'POST',
                     body: formData
                 })
@@ -2719,18 +2881,18 @@
         }
 
         // =====================================================
-        // WEBRTC - APPELS AUDIO/VIDÉO (CORRIGÉ)
+        // WEBRTC - APPELS AUDIO/VIDÉO
         // =====================================================
 
         function initializePeer() {
             // Initialiser PeerJS avec l'ID de l'utilisateur
             peer = new Peer(currentUser.uid, {
                 config: {
-                    iceServers: CONST_STUN_SERVERS
+                    iceServers: STUN_SERVERS
                 }
             });
             
-            // CORRECTION: Stocker l'ID PeerJS dans le profil utilisateur
+            // Stocker l'ID PeerJS dans le profil utilisateur
             db.collection('users').doc(currentUser.uid).update({
                 peerId: peer.id
             }).catch(error => {
@@ -2762,29 +2924,17 @@
                 console.error('Erreur PeerJS:', err);
                 showNotification('Erreur de connexion d\'appel', 'error');
             });
-            
-            // CORRECTION: Écouter les offres d'appel dans Firestore
-            db.collection('calls')
-                .where('to', '==', currentUser.uid)
-                .where('status', '==', 'ringing')
-                .onSnapshot(snapshot => {
-                    snapshot.docChanges().forEach(change => {
-                        if (change.type === 'added') {
-                            const callData = change.doc.data();
-                            handleIncomingCall(callData);
-                        }
-                    });
-                });
         }
 
-        function handleIncomingCall(callData) {
-            // Afficher l'interface d'appel entrant
-            incomingCallContainer.style.display = 'flex';
-            incomingCallUser.textContent = `Appel de ${callData.fromName || 'Utilisateur'}`;
-            incomingCallType.textContent = callData.type === 'video' ? 'Appel vidéo' : 'Appel audio';
-            
-            // Stocker les données d'appel
-            currentCallData = callData;
+        function initializeLocalStream() {
+            // Tenter de capturer le flux média local après l'authentification
+            navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+                .then(stream => {
+                    localStream = stream;
+                })
+                .catch(error => {
+                    console.error('Erreur lors de l\'accès au média:', error);
+                });
         }
 
         function startCall(type) {
@@ -2793,7 +2943,13 @@
                 return;
             }
             
-            // CORRECTION: Obtenir l'ID PeerJS de l'utilisateur cible
+            // Vérifier que le localStream existe
+            if (!localStream) {
+                showNotification('Impossible d\'accéder à la caméra/microphone', 'error');
+                return;
+            }
+            
+            // Obtenir l'ID PeerJS de l'utilisateur cible
             db.collection('users').doc(currentChat.otherUserId).get()
                 .then(doc => {
                     if (!doc.exists) {
@@ -2805,53 +2961,50 @@
                         throw new Error('L\'utilisateur n\'a pas d\'ID PeerJS');
                     }
                     
-                    // Obtenir le flux média local
-                    const mediaConstraints = {
-                        audio: true,
-                        video: type === 'video'
-                    };
+                    // Préparer le stream local selon le type d'appel
+                    const callStream = localStream.clone();
+                    if (type === 'audio') {
+                        // Désactiver la vidéo pour les appels audio
+                        const videoTracks = callStream.getVideoTracks();
+                        videoTracks.forEach(track => track.enabled = false);
+                    }
                     
-                    return navigator.mediaDevices.getUserMedia(mediaConstraints)
-                        .then(stream => {
-                            localStream = stream;
-                            
-                            // Afficher le flux local
-                            if (type === 'video') {
-                                localVideo.srcObject = stream;
-                            }
-                            
-                            // Appeler l'autre utilisateur
-                            const call = peer.call(targetUser.peerId, stream, {
-                                metadata: { type: type }
-                            });
-                            
-                            currentCall = call;
-                            
-                            // Afficher l'interface d'appel
-                            callContainer.style.display = 'flex';
-                            callInfo.querySelector('h2').textContent = `Appel avec ${currentChat.name}`;
-                            callInfo.querySelector('p').textContent = 'Appel en cours...';
-                            
-                            // Écouter le flux distant
-                            call.on('stream', (remoteStream) => {
-                                remoteVideo.srcObject = remoteStream;
-                            });
-                            
-                            // Gérer la fin d'appel
-                            call.on('close', () => {
-                                endCall();
-                            });
-                            
-                            // CORRECTION: Créer une entrée dans Firestore pour la signalisation
-                            return db.collection('calls').add({
-                                from: currentUser.uid,
-                                fromName: currentUser.displayName || currentUser.email,
-                                to: currentChat.otherUserId,
-                                type: type,
-                                status: 'ringing',
-                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                            });
-                        });
+                    // Appeler l'autre utilisateur
+                    const call = peer.call(targetUser.peerId, callStream, {
+                        metadata: { type: type }
+                    });
+                    
+                    currentCall = call;
+                    
+                    // Afficher l'interface d'appel
+                    callContainer.style.display = 'flex';
+                    callInfo.querySelector('h2').textContent = `Appel avec ${currentChat.name}`;
+                    callInfo.querySelector('p').textContent = 'Appel en cours...';
+                    
+                    // Afficher le flux local
+                    if (type === 'video') {
+                        localVideo.srcObject = callStream;
+                    }
+                    
+                    // Écouter le flux distant
+                    call.on('stream', (remoteStream) => {
+                        remoteVideo.srcObject = remoteStream;
+                    });
+                    
+                    // Gérer la fin d'appel
+                    call.on('close', () => {
+                        endCall();
+                    });
+                    
+                    // Créer une entrée dans Firestore pour la signalisation
+                    return db.collection('calls').add({
+                        from: currentUser.uid,
+                        fromName: userName.textContent,
+                        to: currentChat.otherUserId,
+                        type: type,
+                        status: 'ringing',
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
                 })
                 .catch(error => {
                     console.error('Erreur lors du démarrage de l\'appel:', error);
@@ -2860,50 +3013,49 @@
         }
 
         function acceptCall(incomingCall) {
-            // Obtenir le flux média local
-            const mediaConstraints = {
-                audio: true,
-                video: incomingCall.metadata.type === 'video'
-            };
+            // Vérifier que le localStream existe
+            if (!localStream) {
+                showNotification('Impossible d\'accéder à la caméra/microphone', 'error');
+                declineCall();
+                return;
+            }
             
-            navigator.mediaDevices.getUserMedia(mediaConstraints)
-                .then(stream => {
-                    localStream = stream;
-                    
-                    // Afficher le flux local
-                    if (incomingCall.metadata.type === 'video') {
-                        localVideo.srcObject = stream;
-                    }
-                    
-                    // Répondre à l'appel
-                    incomingCall.answer(stream);
-                    
-                    // Cacher l'interface d'appel entrant
-                    incomingCallContainer.style.display = 'none';
-                    
-                    // Afficher l'interface d'appel
-                    callContainer.style.display = 'flex';
-                    callInfo.querySelector('h2').textContent = `Appel avec ${currentChat.name}`;
-                    callInfo.querySelector('p').textContent = 'Appel en cours...';
-                    
-                    // Écouter le flux distant
-                    incomingCall.on('stream', (remoteStream) => {
-                        remoteVideo.srcObject = remoteStream;
-                    });
-                    
-                    // Stocker l'appel actuel
-                    currentCall = incomingCall;
-                    
-                    // Gérer la fin d'appel
-                    incomingCall.on('close', () => {
-                        endCall();
-                    });
-                })
-                .catch(error => {
-                    console.error('Erreur d\'accès au média:', error);
-                    showNotification('Impossible d\'accéder à la caméra/microphone', 'error');
-                    declineCall();
-                });
+            // Préparer le stream local selon le type d'appel
+            const callStream = localStream.clone();
+            if (incomingCall.metadata.type === 'audio') {
+                // Désactiver la vidéo pour les appels audio
+                const videoTracks = callStream.getVideoTracks();
+                videoTracks.forEach(track => track.enabled = false);
+            }
+            
+            // Répondre à l'appel
+            incomingCall.answer(callStream);
+            
+            // Afficher le flux local
+            if (incomingCall.metadata.type === 'video') {
+                localVideo.srcObject = callStream;
+            }
+            
+            // Cacher l'interface d'appel entrant
+            incomingCallContainer.style.display = 'none';
+            
+            // Afficher l'interface d'appel
+            callContainer.style.display = 'flex';
+            callInfo.querySelector('h2').textContent = `Appel avec ${currentChat ? currentChat.name : 'Utilisateur'}`;
+            callInfo.querySelector('p').textContent = 'Appel en cours...';
+            
+            // Écouter le flux distant
+            incomingCall.on('stream', (remoteStream) => {
+                remoteVideo.srcObject = remoteStream;
+            });
+            
+            // Stocker l'appel actuel
+            currentCall = incomingCall;
+            
+            // Gérer la fin d'appel
+            incomingCall.on('close', () => {
+                endCall();
+            });
         }
 
         function declineCall() {
@@ -2922,7 +3074,6 @@
             // Arrêter tous les tracks des streams
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
-                localStream = null;
             }
             
             // Réinitialiser les vidéos
@@ -2960,14 +3111,14 @@
         // SYSTÈME DE NOTIFICATIONS
         // =====================================================
 
-        function createNotification(userId, type, message, fromUserId) {
+        function createNotification(toId, type, message, fromId) {
             db.collection('notifications').add({
-                userId: userId,
+                toId: toId,
+                fromId: fromId,
                 type: type,
                 message: message,
-                fromUserId: fromUserId,
-                read: false,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                isRead: false
             })
             .catch(error => {
                 console.error('Erreur lors de la création de la notification:', error);
@@ -2976,8 +3127,8 @@
 
         function loadNotifications() {
             db.collection('notifications')
-                .where('userId', '==', currentUser.uid)
-                .where('read', '==', false)
+                .where('toId', '==', currentUser.uid)
+                .where('isRead', '==', false)
                 .orderBy('timestamp', 'desc')
                 .get()
                 .then(snapshot => {
@@ -3006,7 +3157,7 @@
                         
                         notificationItem.addEventListener('click', () => {
                             // Marquer comme lu
-                            doc.ref.update({ read: true });
+                            doc.ref.update({ isRead: true });
                             
                             // Rediriger selon le type de notification
                             handleNotificationClick(notification);
@@ -3024,34 +3175,36 @@
             switch(notification.type) {
                 case 'friend_request':
                     // Ouvrir le profil de l'expéditeur
-                    db.collection('users').doc(notification.fromUserId).get()
+                    db.collection('users').doc(notification.fromId).get()
                         .then(doc => {
                             if (doc.exists) {
-                                showUserDetails(doc.data());
+                                const userData = doc.data();
+                                userData.uid = doc.id;
+                                showUserDetails(userData);
                             }
                         });
                     break;
                 case 'friend_accepted':
                     // Ouvrir le chat avec l'ami
-                    openChat(notification.fromUserId);
+                    openChat(notification.fromId);
                     break;
                 case 'message':
                     // Ouvrir le chat correspondant
-                    openChat(notification.fromUserId);
+                    openChat(notification.fromId);
                     break;
             }
         }
 
         function updateNotificationBadge() {
             db.collection('notifications')
-                .where('userId', '==', currentUser.uid)
-                .where('read', '==', false)
+                .where('toId', '==', currentUser.uid)
+                .where('isRead', '==', false)
                 .get()
                 .then(snapshot => {
                     notificationsCount = snapshot.size;
                     
                     if (notificationsCount > 0) {
-                        notificationBadge.textContent = notificationsCount;
+                        notificationBadge.textContent = notificationsCount > 9 ? '9+' : notificationsCount;
                         notificationBadge.style.display = 'flex';
                     } else {
                         notificationBadge.style.display = 'none';
@@ -3074,6 +3227,12 @@
             document.querySelectorAll('.modal').forEach(modal => {
                 modal.style.display = 'none';
             });
+            
+            // Arrêter l'écouteur d'amitié si nécessaire
+            if (friendshipListener) {
+                friendshipListener();
+                friendshipListener = null;
+            }
         }
 
         // =====================================================
@@ -3125,17 +3284,20 @@
             // Écouter les conversations
             db.collection('chats')
                 .where('participants', 'array-contains', currentUser.uid)
+                .orderBy('lastMessageTime', 'desc')
                 .onSnapshot(snapshot => {
                     updateChatList(snapshot);
                 });
             
             // Écouter les notifications
             db.collection('notifications')
-                .where('userId', '==', currentUser.uid)
-                .where('read', '==', false)
+                .where('toId', '==', currentUser.uid)
+                .where('isRead', '==', false)
                 .onSnapshot(snapshot => {
                     updateNotificationBadge();
-                    loadNotifications();
+                    if (document.querySelector('.tab.active').dataset.tab === 'notifications') {
+                        loadNotifications();
+                    }
                 });
         }
 
@@ -3175,8 +3337,7 @@
                 } else {
                     // Trouver l'autre participant
                     const otherParticipantId = chat.participants.find(id => id !== currentUser.uid);
-                    // Dans une vraie application, nous chargerions les données de cet utilisateur
-                    chatName = 'Utilisateur';
+                    chatName = chat.participantNames ? chat.participantNames[otherParticipantId] : 'Utilisateur';
                     chatImage = 'https://via.placeholder.com/50';
                 }
                 
@@ -3188,13 +3349,13 @@
                     <div class="chat-info">
                         <div class="chat-name">${chatName}</div>
                         <div class="last-message">${chat.lastMessage || 'Aucun message'}</div>
-                        <div class="message-status status-sent">${getMessageStatusText(chat.lastMessageStatus)}</div>
                     </div>
                     <div class="chat-time">${formatTime(chat.lastMessageTime)}</div>
                 `;
                 
                 chatItem.addEventListener('click', () => {
-                    openChat(chat.id, chatName, chatImage, false, chat.isGroup);
+                    const otherParticipantId = chat.participants.find(id => id !== currentUser.uid);
+                    openChat(otherParticipantId, chatName);
                     
                     // Marquer comme active
                     document.querySelectorAll('.chat-item').forEach(item => {
@@ -3205,31 +3366,6 @@
                 
                 chatList.appendChild(chatItem);
             });
-        }
-
-        function loadChatMessages(chatId) {
-            // Vider le conteneur de messages
-            messagesContainer.innerHTML = '';
-            
-            // Dans une application réelle, charger les messages depuis Firestore
-            // Pour l'instant, afficher un message d'information
-            const infoMessage = document.createElement('div');
-            infoMessage.className = 'empty-state';
-            infoMessage.innerHTML = `
-                <i class="fas fa-comment-slash"></i>
-                <p>Aucun message dans cette conversation</p>
-                <p>Soyez le premier à envoyer un message !</p>
-            `;
-            messagesContainer.appendChild(infoMessage);
-        }
-
-        function getMessageStatusText(status) {
-            switch(status) {
-                case 'sent': return '✓';
-                case 'delivered': return '✓✓';
-                case 'read': return '✓✓';
-                default: return '';
-            }
         }
 
         function formatTime(timestamp) {
