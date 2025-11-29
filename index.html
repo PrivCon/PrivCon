@@ -913,6 +913,15 @@
     </div>
 
     <script>
+        // =====================================================
+        // INSTRUCTIONS DE CONFIGURATION
+        // =====================================================
+        // 1. Configurez Firebase dans la console Firebase
+        // 2. Configurez Cloudinary et créez un upload preset non signé
+        // 3. Remplacez les valeurs ci-dessous par vos propres clés
+        // 4. Déployez les règles de sécurité Firestore fournies
+        // 5. Supprimez toutes les données de test de votre base Firestore
+
         // CONSTANTES DE CONFIGURATION
         // REMPLACEZ CES VALEURS PAR VOS PROPRES CONFIGURATIONS
 
@@ -931,6 +940,48 @@
         // À obtenir depuis le dashboard Cloudinary
         const CONST_CLOUDINARY_CLOUD_NAME = "djbp8wvsw";
         const CONST_CLOUDINARY_PRESET = "privcon_upload"; // Upload preset non signé
+
+        // =====================================================
+        // RÈGLES DE SÉCURITÉ FIRESTORE (À COPIER DANS LA CONSOLE FIREBASE)
+        // =====================================================
+        /*
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+
+            // 1. Les Utilisateurs peuvent lire la liste des utilisateurs, mais ne peuvent modifier que leur propre profil
+            match /users/{userId} {
+              allow read: if request.auth != null; // Tous les utilisateurs connectés peuvent lire
+              allow create: if request.auth != null; // Autorise la création lors de l'inscription
+              allow update: if request.auth.uid == userId; // Autorise l'update uniquement par le propriétaire
+            }
+
+            // 2. Les Chats (Conversations)
+            match /chats/{chatId} {
+              // Si le document de chat n'existe pas (règle spécifique), le créer est autorisé
+              allow create: if request.auth != null;
+              allow read, update: if get(/databases/$(database)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true;
+
+              // 3. Les Messages (sous-collection des Chats)
+              match /messages/{messageId} {
+                // Seuls les participants de la conversation mère peuvent lire/écrire des messages
+                allow read, create: if get(/databases/$(database)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true;
+                // Pas de suppression ou de modification de messages une fois envoyés (standard chat)
+              }
+            }
+
+            // 4. Les Groupes (Similaire aux chats)
+            match /groups/{groupId} {
+              allow read, update: if request.auth != null && resource.data.members[request.auth.uid] == true;
+              allow create: if request.auth != null;
+            }
+          }
+        }
+        */
+
+        // =====================================================
+        // INITIALISATION DE L'APPLICATION
+        // =====================================================
 
         // Initialisation de Firebase
         firebase.initializeApp(CONST_FIREBASE_CONFIG);
@@ -1061,7 +1112,10 @@
             });
         }
 
-        // Fonctions d'authentification
+        // =====================================================
+        // FONCTIONS D'AUTHENTIFICATION (CORRIGÉES)
+        // =====================================================
+
         function showRegisterForm() {
             loginForm.style.display = 'none';
             registerForm.style.display = 'block';
@@ -1104,7 +1158,7 @@
                 .then((userCredential) => {
                     const user = userCredential.user;
                     
-                    // Créer le profil utilisateur dans Firestore
+                    // CORRECTION: Utiliser set() avec merge: true pour créer ou mettre à jour le profil
                     return db.collection('users').doc(user.uid).set({
                         uid: user.uid,
                         username: username,
@@ -1114,7 +1168,7 @@
                         isOnline: true,
                         lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    }, { merge: true });
                 })
                 .then(() => {
                     showNotification('Compte créé avec succès', 'success');
@@ -1131,23 +1185,17 @@
                 .then((result) => {
                     const user = result.user;
                     
-                    // Vérifier si l'utilisateur existe déjà dans Firestore
-                    return db.collection('users').doc(user.uid).get();
-                })
-                .then((doc) => {
-                    if (!doc.exists) {
-                        // Créer le profil utilisateur dans Firestore
-                        return db.collection('users').doc(currentUser.uid).set({
-                            uid: currentUser.uid,
-                            username: currentUser.displayName || currentUser.email.split('@')[0],
-                            email: currentUser.email,
-                            photoURL: currentUser.photoURL || '',
-                            bio: '',
-                            isOnline: true,
-                            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    }
+                    // CORRECTION: Utiliser set() avec merge: true pour créer ou mettre à jour le profil
+                    return db.collection('users').doc(user.uid).set({
+                        uid: user.uid,
+                        username: user.displayName || user.email.split('@')[0],
+                        email: user.email,
+                        photoURL: user.photoURL || '',
+                        bio: '',
+                        isOnline: true,
+                        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
                 })
                 .then(() => {
                     showNotification('Connexion Google réussie', 'success');
@@ -1169,7 +1217,10 @@
                 });
         }
 
-        // Fonctions d'interface utilisateur
+        // =====================================================
+        // FONCTIONS D'INTERFACE UTILISATEUR
+        // =====================================================
+
         function showAuth() {
             authContainer.style.display = 'flex';
             dashboard.style.display = 'none';
@@ -1186,9 +1237,11 @@
             if (document.body.classList.contains('dark-theme')) {
                 icon.classList.remove('fa-moon');
                 icon.classList.add('fa-sun');
+                localStorage.setItem('theme', 'dark');
             } else {
                 icon.classList.remove('fa-sun');
                 icon.classList.add('fa-moon');
+                localStorage.setItem('theme', 'light');
             }
         }
 
@@ -1222,7 +1275,10 @@
             sidebar.classList.toggle('active');
         }
 
-        // Fonctions de gestion des utilisateurs
+        // =====================================================
+        // FONCTIONS DE GESTION DES UTILISATEURS (CORRIGÉES)
+        // =====================================================
+
         function setupUserData() {
             // Charger les données utilisateur depuis Firestore
             db.collection('users').doc(currentUser.uid).get()
@@ -1254,7 +1310,8 @@
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp()
             };
             
-            db.collection('users').doc(currentUser.uid).update(statusUpdate)
+            // CORRECTION: Utiliser set() avec merge pour éviter "No document to update"
+            db.collection('users').doc(currentUser.uid).set(statusUpdate, { merge: true })
                 .catch(error => {
                     console.error('Erreur lors de la mise à jour du statut:', error);
                 });
@@ -1274,7 +1331,8 @@
                 bio: bio
             };
             
-            db.collection('users').doc(currentUser.uid).update(updates)
+            // CORRECTION: Utiliser set() avec merge pour éviter "No document to update"
+            db.collection('users').doc(currentUser.uid).set(updates, { merge: true })
                 .then(() => {
                     showNotification('Profil mis à jour avec succès', 'success');
                     userName.textContent = username;
@@ -1285,7 +1343,10 @@
                 });
         }
 
-        // Fonctions de messagerie
+        // =====================================================
+        // FONCTIONS DE MESSAGERIE (CORRIGÉES)
+        // =====================================================
+
         function sendMessage() {
             const messageText = messageInput.value.trim();
             
@@ -1298,24 +1359,43 @@
                 status: 'sent'
             };
             
-            // Ajouter le message à la conversation
-            db.collection('chats').doc(currentChat.id).collection('messages').add(message)
-                .then(() => {
-                    // Mettre à jour le dernier message de la conversation
-                    db.collection('chats').doc(currentChat.id).update({
+            // CORRECTION: Vérifier si le chat existe avant d'envoyer un message
+            const chatRef = db.collection('chats').doc(currentChat.id);
+            
+            chatRef.get().then(doc => {
+                if (!doc.exists) {
+                    // Créer le chat s'il n'existe pas
+                    return chatRef.set({
+                        participants: [currentUser.uid, currentChat.otherUserId],
                         lastMessage: messageText,
-                        lastMessageTime: message.timestamp
+                        lastMessageTime: message.timestamp,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(() => {
+                        // Ajouter le message après avoir créé le chat
+                        return chatRef.collection('messages').add(message);
                     });
-                    
-                    // Réinitialiser le champ de message
-                    messageInput.value = '';
-                    
-                    // Ajuster la hauteur du textarea
-                    messageInput.style.height = 'auto';
-                })
-                .catch(error => {
-                    showNotification('Erreur lors de l\'envoi du message: ' + error.message, 'error');
+                } else {
+                    // Le chat existe, ajouter simplement le message
+                    return chatRef.collection('messages').add(message);
+                }
+            })
+            .then(() => {
+                // Mettre à jour le dernier message de la conversation
+                return chatRef.update({
+                    lastMessage: messageText,
+                    lastMessageTime: message.timestamp
                 });
+            })
+            .then(() => {
+                // Réinitialiser le champ de message
+                messageInput.value = '';
+                
+                // Ajuster la hauteur du textarea
+                messageInput.style.height = 'auto';
+            })
+            .catch(error => {
+                showNotification('Erreur lors de l\'envoi du message: ' + error.message, 'error');
+            });
         }
 
         function handleFileUpload(event) {
@@ -1342,8 +1422,26 @@
                         status: 'sent'
                     };
                     
-                    // Ajouter le message à la conversation
-                    return db.collection('chats').doc(currentChat.id).collection('messages').add(message);
+                    // CORRECTION: Vérifier si le chat existe avant d'envoyer un message média
+                    const chatRef = db.collection('chats').doc(currentChat.id);
+                    
+                    return chatRef.get().then(doc => {
+                        if (!doc.exists) {
+                            // Créer le chat s'il n'existe pas
+                            return chatRef.set({
+                                participants: [currentUser.uid, currentChat.otherUserId],
+                                lastMessage: 'Fichier média',
+                                lastMessageTime: message.timestamp,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            }).then(() => {
+                                // Ajouter le message après avoir créé le chat
+                                return chatRef.collection('messages').add(message);
+                            });
+                        } else {
+                            // Le chat existe, ajouter simplement le message
+                            return chatRef.collection('messages').add(message);
+                        }
+                    });
                 })
                 .then(() => {
                     // Mettre à jour le dernier message de la conversation
@@ -1427,8 +1525,26 @@
                         status: 'sent'
                     };
                     
-                    // Ajouter le message à la conversation
-                    return db.collection('chats').doc(currentChat.id).collection('messages').add(message);
+                    // CORRECTION: Vérifier si le chat existe avant d'envoyer un message audio
+                    const chatRef = db.collection('chats').doc(currentChat.id);
+                    
+                    return chatRef.get().then(doc => {
+                        if (!doc.exists) {
+                            // Créer le chat s'il n'existe pas
+                            return chatRef.set({
+                                participants: [currentUser.uid, currentChat.otherUserId],
+                                lastMessage: '🎤 Message audio',
+                                lastMessageTime: message.timestamp,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            }).then(() => {
+                                // Ajouter le message après avoir créé le chat
+                                return chatRef.collection('messages').add(message);
+                            });
+                        } else {
+                            // Le chat existe, ajouter simplement le message
+                            return chatRef.collection('messages').add(message);
+                        }
+                    });
                 })
                 .then(() => {
                     // Mettre à jour le dernier message de la conversation
@@ -1445,15 +1561,18 @@
                 });
         }
 
-        // Fonction pour téléverser vers Cloudinary
+        // =====================================================
+        // FONCTION CLOUDINARY CORRIGÉE
+        // =====================================================
+
         function uploadToCloudinary(file, resourceType) {
             return new Promise((resolve, reject) => {
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('upload_preset', CONST_CLOUDINARY_PRESET);
-                formData.append('resource_type', resourceType);
+                formData.append('upload_preset', CONST_CLOUDINARY_UPLOAD_PRESET);
                 
-                fetch(`https://api.cloudinary.com/v1_1/${CONST_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+                // CORRECTION: Utiliser l'endpoint auto/upload pour la détection automatique du type
+                fetch(`https://api.cloudinary.com/v1_1/${CONST_CLOUDINARY_CLOUD_NAME}/auto/upload`, {
                     method: 'POST',
                     body: formData
                 })
@@ -1472,7 +1591,10 @@
             });
         }
 
-        // Fonctions de gestion des amis
+        // =====================================================
+        // FONCTIONS DE GESTION DES AMIS ET GROUPES
+        // =====================================================
+
         function loadFriendsList() {
             // Cette fonction chargerait la liste d'amis depuis Firestore
             // Pour l'instant, nous allons simuler des données
@@ -1508,7 +1630,6 @@
             });
         }
 
-        // Fonctions de gestion des groupes
         function loadGroupsList() {
             // Cette fonction chargerait la liste des groupes depuis Firestore
             // Pour l'instant, nous allons simuler des données
@@ -1596,7 +1717,10 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // Fonctions de gestion des modales
+        // =====================================================
+        // FONCTIONS DE GESTION DES MODALES
+        // =====================================================
+
         function showProfileModal() {
             profileModal.style.display = 'flex';
         }
@@ -1607,7 +1731,10 @@
             });
         }
 
-        // Fonctions de notification
+        // =====================================================
+        // FONCTIONS DE NOTIFICATION
+        // =====================================================
+
         function showNotification(message, type) {
             const notificationContent = notification.querySelector('.notification-content');
             notificationContent.textContent = message;
@@ -1625,7 +1752,10 @@
             }, 3000);
         }
 
-        // Écouteurs en temps réel
+        // =====================================================
+        // ÉCOUTEURS EN TEMPS RÉEL
+        // =====================================================
+
         function setupRealtimeListeners() {
             if (!currentUser) return;
             
@@ -1747,22 +1877,17 @@
             return date.toLocaleDateString();
         }
 
-        // Initialisation du thème
+        // =====================================================
+        // INITIALISATION DU THÈME
+        // =====================================================
+
+        // Charger le thème sauvegardé
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') {
             document.body.classList.add('dark-theme');
             themeToggle.querySelector('i').classList.remove('fa-moon');
             themeToggle.querySelector('i').classList.add('fa-sun');
         }
-
-        // Sauvegarder le thème
-        themeToggle.addEventListener('click', () => {
-            if (document.body.classList.contains('dark-theme')) {
-                localStorage.setItem('theme', 'dark');
-            } else {
-                localStorage.setItem('theme', 'light');
-            }
-        });
 
         // Ajustement automatique de la hauteur du textarea
         messageInput.addEventListener('input', function() {
