@@ -9,6 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
     
     <!-- CDN pour PeerJS (WebRTC) -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -131,6 +132,11 @@
             color: white;
         }
 
+        .btn-danger {
+            background-color: #F02849;
+            color: white;
+        }
+
         .btn:hover {
             opacity: 0.9;
             transform: translateY(-2px);
@@ -231,7 +237,7 @@
         /* Styles pour la mise en page principale */
         .main-container {
             display: flex;
-            height: calc(100vh - 70px);
+            height: calc(100vh - 120px);
             overflow: hidden;
         }
 
@@ -515,6 +521,8 @@
             max-width: 500px;
             border-radius: 12px;
             padding: 25px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .modal-header {
@@ -942,7 +950,7 @@
             opacity: 0.5;
         }
 
-        /* Barre de navigation mobile */
+        /* Barre de navigation mobile - CORRIGÉE: Position fixe */
         .mobile-nav {
             position: fixed;
             bottom: 0;
@@ -1033,6 +1041,119 @@
             box-shadow: var(--shadow);
             z-index: 99;
         }
+
+        /* Styles pour les sélecteurs d'amis dans les groupes */
+        .friends-select-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .friend-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+        }
+
+        .friend-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .friend-checkbox label {
+            cursor: pointer;
+        }
+
+        /* Styles pour les détails de groupe */
+        .group-details-container {
+            padding: 20px;
+        }
+
+        .group-admin-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        .group-member-list {
+            margin-top: 15px;
+        }
+
+        .group-member-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .group-member-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Styles pour les paramètres professionnels */
+        .settings-section {
+            margin-bottom: 25px;
+        }
+
+        .settings-section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding: 0 20px;
+            color: var(--primary-color);
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .setting-item:hover {
+            background: var(--glass-bg);
+        }
+
+        .setting-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: var(--primary-color);
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .setting-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .setting-arrow {
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
@@ -1098,7 +1219,7 @@
         </header>
 
         <div class="main-container">
-            <!-- Vue Messages (Page d'accueil) -->
+            <!-- Vue Messages (Page d'accueil) - MODIFIÉE : Liste des utilisateurs -->
             <div id="messages-view" class="view active">
                 <div class="view-header glass">
                     <h2 class="view-title">Messages</h2>
@@ -1111,10 +1232,10 @@
                     </div>
                 </div>
                 <div class="view-content">
-                    <ul class="chat-list" id="chat-list">
+                    <ul class="chat-list" id="users-list">
                         <div class="empty-state">
-                            <i class="fas fa-comments"></i>
-                            <p>Aucune conversation</p>
+                            <i class="fas fa-users"></i>
+                            <p>Chargement des utilisateurs...</p>
                         </div>
                     </ul>
                 </div>
@@ -1180,49 +1301,78 @@
                 </div>
             </div>
 
-            <!-- Vue Paramètres -->
+            <!-- Vue Paramètres - AMÉLIORÉE : Structure professionnelle -->
             <div id="settings-view" class="view">
                 <div class="view-header glass">
                     <h2 class="view-title">Paramètres</h2>
                 </div>
                 <div class="view-content">
-                    <ul class="settings-list" id="settings-list">
-                        <li class="setting-item">
-                            <div class="setting-info">
-                                <div class="setting-name">Mon profil</div>
-                                <div class="setting-description">Gérer vos informations personnelles</div>
-                            </div>
-                            <i class="fas fa-chevron-right"></i>
-                        </li>
-                        <li class="setting-item">
-                            <div class="setting-info">
-                                <div class="setting-name">Notifications</div>
-                                <div class="setting-description">Gérer les notifications de l'application</div>
-                            </div>
-                            <i class="fas fa-chevron-right"></i>
-                        </li>
-                        <li class="setting-item">
-                            <div class="setting-info">
-                                <div class="setting-name">Confidentialité</div>
-                                <div class="setting-description">Contrôler qui peut vous voir</div>
-                            </div>
-                            <i class="fas fa-chevron-right"></i>
-                        </li>
-                        <li class="setting-item">
-                            <div class="setting-info">
-                                <div class="setting-name">Aide</div>
-                                <div class="setting-description">Centre d'aide et support</div>
-                            </div>
-                            <i class="fas fa-chevron-right"></i>
-                        </li>
-                        <li class="setting-item" id="logout-setting">
-                            <div class="setting-info">
-                                <div class="setting-name">Déconnexion</div>
-                                <div class="setting-description">Se déconnecter de votre compte</div>
-                            </div>
-                            <i class="fas fa-sign-out-alt"></i>
-                        </li>
-                    </ul>
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">Compte</h3>
+                        <ul class="settings-list">
+                            <li class="setting-item" id="profile-setting">
+                                <div class="setting-icon">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="setting-info">
+                                    <div class="setting-name">Mon Profil</div>
+                                    <div class="setting-description">Gérer vos informations personnelles</div>
+                                </div>
+                                <i class="fas fa-chevron-right setting-arrow"></i>
+                            </li>
+                            <li class="setting-item" id="photo-setting">
+                                <div class="setting-icon">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                                <div class="setting-info">
+                                    <div class="setting-name">Photo de Profil</div>
+                                    <div class="setting-description">Modifier votre photo de profil</div>
+                                </div>
+                                <i class="fas fa-chevron-right setting-arrow"></i>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">Général</h3>
+                        <ul class="settings-list">
+                            <li class="setting-item" id="security-setting">
+                                <div class="setting-icon">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <div class="setting-info">
+                                    <div class="setting-name">Sécurité et Confidentialité</div>
+                                    <div class="setting-description">Paramètres de sécurité et confidentialité</div>
+                                </div>
+                                <i class="fas fa-chevron-right setting-arrow"></i>
+                            </li>
+                            <li class="setting-item" id="help-setting">
+                                <div class="setting-icon">
+                                    <i class="fas fa-question-circle"></i>
+                                </div>
+                                <div class="setting-info">
+                                    <div class="setting-name">Aide et Assistance</div>
+                                    <div class="setting-description">Centre d'aide et support</div>
+                                </div>
+                                <i class="fas fa-chevron-right setting-arrow"></i>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <ul class="settings-list">
+                            <li class="setting-item" id="logout-setting">
+                                <div class="setting-icon">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                </div>
+                                <div class="setting-info">
+                                    <div class="setting-name">Déconnexion</div>
+                                    <div class="setting-description">Se déconnecter de votre compte</div>
+                                </div>
+                                <i class="fas fa-chevron-right setting-arrow"></i>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
@@ -1230,6 +1380,9 @@
             <div id="chat-view" class="view">
                 <div class="chat-area">
                     <div class="chat-header glass">
+                        <button class="chat-action-btn" id="back-to-messages">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
                         <div class="profile-container">
                             <img src="" alt="Photo de profil" class="profile-pic" id="chat-user-pic">
                             <div class="online-indicator" id="chat-online-indicator"></div>
@@ -1279,16 +1432,61 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Vue Conversation de Groupe -->
+            <div id="group-chat-view" class="view">
+                <div class="chat-area">
+                    <div class="chat-header glass">
+                        <button class="chat-action-btn" id="back-to-groups">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <div class="profile-container">
+                            <img src="" alt="Photo du groupe" class="profile-pic" id="group-chat-pic">
+                        </div>
+                        <div class="chat-user-info">
+                            <div class="chat-user-name" id="group-chat-name">Groupe</div>
+                            <div class="chat-user-status" id="group-chat-members">Membres</div>
+                        </div>
+                        <div class="chat-actions">
+                            <button class="chat-action-btn" id="group-info-btn">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="messages-container" id="group-messages-container">
+                        <div class="welcome-message">
+                            <p>Chargement des messages du groupe...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="message-input-container glass">
+                        <button class="attachment-btn" id="group-attachment-btn">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <input type="file" id="group-file-input" style="display: none;" accept="image/*,video/*">
+                        
+                        <textarea class="message-input" id="group-message-input" placeholder="Tapez votre message..." rows="1"></textarea>
+                        
+                        <button class="mic-btn" id="group-mic-btn">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="send-btn" id="group-send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
         
-        <!-- Barre de navigation mobile -->
+        <!-- Barre de navigation mobile - CORRIGÉE: Position fixe et visible partout -->
         <nav class="mobile-nav">
             <div class="mobile-nav-tabs">
-                <div class="mobile-tab active" data-view="calls-view">
+                <div class="mobile-tab" data-view="calls-view">
                     <i class="fas fa-phone"></i>
                     <span>Appels</span>
                 </div>
-                <div class="mobile-tab" data-view="messages-view">
+                <div class="mobile-tab active" data-view="messages-view">
                     <i class="fas fa-comments"></i>
                     <span>Messages</span>
                 </div>
@@ -1381,7 +1579,7 @@
         </div>
     </div>
 
-    <!-- Modale de création de groupe -->
+    <!-- Modale de création de groupe - CORRIGÉE : Gestion des événements -->
     <div id="create-group-modal" class="modal">
         <div class="modal-content glass">
             <div class="modal-header">
@@ -1410,7 +1608,74 @@
             </div>
             <div class="modal-footer">
                 <button class="btn" id="cancel-group-btn">Annuler</button>
-                <button class="btn btn-primary" id="create-group-btn">Créer</button>
+                <button class="btn btn-primary" id="confirm-create-group-btn">Créer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale de détails du groupe -->
+    <div id="group-details-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2 class="modal-title">Détails du Groupe</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="group-details-container">
+                    <div class="profile-details">
+                        <img src="" alt="Photo du groupe" class="profile-details-pic" id="group-details-pic">
+                        <h2 class="profile-details-name" id="group-details-name">
+                            <span id="group-name-text"></span>
+                            <span class="group-admin-badge" id="admin-badge" style="display: none;">Admin</span>
+                        </h2>
+                        <p class="profile-details-bio" id="group-details-description"></p>
+                        
+                        <div class="form-group" id="edit-group-name" style="display: none;">
+                            <label for="edit-group-name-input">Nouveau nom du groupe</label>
+                            <input type="text" id="edit-group-name-input" placeholder="Nouveau nom">
+                        </div>
+                        
+                        <div class="form-group" id="edit-group-photo" style="display: none;">
+                            <label for="edit-group-photo-input">Nouvelle photo</label>
+                            <input type="file" id="edit-group-photo-input" accept="image/*">
+                        </div>
+                        
+                        <div class="profile-details-info">
+                            <div class="profile-details-item">
+                                <span class="profile-details-label">Créé par:</span>
+                                <span class="profile-details-value" id="group-details-creator"></span>
+                            </div>
+                            <div class="profile-details-item">
+                                <span class="profile-details-label">Membres:</span>
+                                <span class="profile-details-value" id="group-details-members-count"></span>
+                            </div>
+                            <div class="profile-details-item">
+                                <span class="profile-details-label">Créé le:</span>
+                                <span class="profile-details-value" id="group-details-created"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="group-member-list">
+                        <h3>Membres du groupe</h3>
+                        <div id="group-members-list">
+                            <!-- Liste des membres chargée dynamiquement -->
+                        </div>
+                        
+                        <div class="form-group" id="add-members-section" style="display: none;">
+                            <label>Ajouter des membres</label>
+                            <div id="add-members-container">
+                                <!-- Amis disponibles pour ajout -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="edit-group-btn">Modifier le groupe</button>
+                <button class="btn btn-primary" id="save-group-btn" style="display: none;">Enregistrer</button>
+                <button class="btn btn-danger" id="delete-group-btn" style="display: none;">Supprimer le groupe</button>
+                <button class="btn" id="cancel-edit-group-btn" style="display: none;">Annuler</button>
             </div>
         </div>
     </div>
@@ -1505,189 +1770,6 @@
 
     <script>
         // =====================================================
-        // RÈGLES DE SÉCURITÉ FIRESTORE
-        // =====================================================
-        /*
-        rules_version = '2';
-        service cloud.firestore {
-          match /databases/{database}/documents {
-
-            // 1. Profils (Lecture publique pour la recherche, Écriture privée)
-            match /users/{userId} {
-              allow read: if true; // Tout le monde peut lire les profils (pour la recherche)
-              allow create: if request.auth != null && request.auth.uid == userId;
-              allow update, delete: if request.auth != null && request.auth.uid == userId;
-              
-              // Validation des données utilisateur
-              allow write: if (
-                request.auth != null && 
-                request.auth.uid == userId &&
-                request.resource.data.keys().hasAll(['uid', 'username', 'email']) &&
-                request.resource.data.uid == userId &&
-                request.resource.data.username is string &&
-                request.resource.data.username.size() >= 2 &&
-                request.resource.data.username.size() <= 30 &&
-                request.resource.data.email is string &&
-                request.resource.data.email.matches('^[^@]+@[^@]+\\.[^@]+$')
-              );
-            }
-
-            // 2. Collection des chats
-            match /chats/{chatId} {
-              // Seuls les participants peuvent lire et écrire
-              allow read, write: if (
-                request.auth != null && 
-                request.auth.uid in resource.data.participants
-              );
-              
-              // Validation pour la création
-              allow create: if (
-                request.auth != null &&
-                request.resource.data.participants is list &&
-                request.resource.data.participants.size() == 2 &&
-                request.auth.uid in request.resource.data.participants
-              );
-            }
-
-            // 3. Sous-collection des messages dans les chats
-            match /chats/{chatId}/messages/{messageId} {
-              // Seuls les participants du chat parent peuvent lire et écrire
-              allow read, write: if (
-                request.auth != null && 
-                exists(/databases/$(database)/documents/chats/$(chatId)) &&
-                request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
-              );
-              
-              // Validation des messages
-              allow create: if (
-                request.auth != null &&
-                request.resource.data.senderId == request.auth.uid &&
-                request.resource.data.timestamp is timestamp
-              );
-            }
-
-            // 4. Collection des demandes d'amis
-            match /friend_requests/{requestId} {
-              // Seuls les utilisateurs concernés peuvent lire et écrire
-              allow read: if (
-                request.auth != null && 
-                (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to)
-              );
-              
-              allow create: if (
-                request.auth != null &&
-                request.auth.uid == request.resource.data.from &&
-                request.resource.data.from != request.resource.data.to &&
-                request.resource.data.status == 'pending' &&
-                request.resource.data.timestamp is timestamp
-              );
-              
-              allow update: if (
-                request.auth != null &&
-                (
-                  (request.auth.uid == resource.data.to && 
-                   request.resource.data.status == 'accepted' &&
-                   resource.data.status == 'pending') ||
-                  (request.auth.uid == resource.data.from &&
-                   request.resource.data.status == 'cancelled' &&
-                   resource.data.status == 'pending')
-                )
-              );
-            }
-
-            // 5. Collection des notifications
-            match /notifications/{notificationId} {
-              // Seul le destinataire peut lire
-              allow read: if (
-                request.auth != null && 
-                request.auth.uid == resource.data.toId
-              );
-              
-              // Seul l'expéditeur peut créer (pour les notifications d'amis, messages, etc.)
-              allow create: if (
-                request.auth != null &&
-                request.auth.uid == request.resource.data.fromId &&
-                request.resource.data.toId is string &&
-                request.resource.data.toId != request.auth.uid &&
-                request.resource.data.type in ['friend_request', 'friend_accepted', 'message', 'call'] &&
-                request.resource.data.isRead is bool &&
-                request.resource.data.timestamp is timestamp
-              );
-              
-              // Seul le destinataire peut mettre à jour (marquer comme lu)
-              allow update: if (
-                request.auth != null &&
-                request.auth.uid == resource.data.toId &&
-                request.resource.data.isRead == true &&
-                request.resource.data.keys().hasAll(['isRead'])
-              );
-              
-              // Seul le destinataire peut supprimer
-              allow delete: if (
-                request.auth != null &&
-                request.auth.uid == resource.data.toId
-              );
-            }
-
-            // 6. Collection des appels (signalisation WebRTC)
-            match /calls/{callId} {
-              // Les participants peuvent lire et écrire
-              allow read, write: if (
-                request.auth != null && 
-                (
-                  request.auth.uid == resource.data.from ||
-                  request.auth.uid == resource.data.to ||
-                  request.auth.uid == request.resource.data.from ||
-                  request.auth.uid == request.resource.data.to
-                )
-              );
-              
-              // Validation pour la création d'appel
-              allow create: if (
-                request.auth != null &&
-                request.auth.uid == request.resource.data.from &&
-                request.resource.data.to is string &&
-                request.resource.data.to != request.auth.uid &&
-                request.resource.data.type in ['audio', 'video'] &&
-                request.resource.data.status == 'ringing' &&
-                request.resource.data.timestamp is timestamp
-              );
-              
-              // Validation pour les mises à jour d'appel
-              allow update: if (
-                request.auth != null &&
-                request.resource.data.status in ['accepted', 'declined', 'ended', 'cancelled']
-              );
-            }
-
-            // 7. Collection des groupes (extension future)
-            match /groups/{groupId} {
-              // Seuls les membres peuvent lire et écrire
-              allow read, write: if (
-                request.auth != null && 
-                request.auth.uid in resource.data.members
-              );
-              
-              allow create: if (
-                request.auth != null &&
-                request.auth.uid in request.resource.data.members &&
-                request.resource.data.createdBy == request.auth.uid
-              );
-            }
-
-            // 8. Sous-collection des messages de groupe
-            match /groups/{groupId}/messages/{messageId} {
-              allow read, write: if (
-                request.auth != null && 
-                exists(/databases/$(database)/documents/groups/$(groupId)) &&
-                request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members
-              );
-            }
-          }
-        }
-        */
-
-        // =====================================================
         // CONFIGURATION
         // =====================================================
         
@@ -1718,6 +1800,7 @@
         firebase.initializeApp(CONST_FIREBASE_CONFIG);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        const storage = firebase.storage();
 
         // Initialisation de PeerJS (WebRTC)
         let peer = null;
@@ -1728,6 +1811,7 @@
         // État de l'application
         let currentUser = null;
         let currentChat = null;
+        let currentGroup = null;
         let isRecording = false;
         let isVoiceLocked = false;
         let mediaRecorder = null;
@@ -1740,6 +1824,7 @@
         let notificationsCount = 0;
         let friendRequestListener = null;
         let currentSearchResults = [];
+        let groupCreationInProgress = false; // CORRECTION: Prévenir la création en boucle
 
         // Éléments DOM
         const authContainer = document.getElementById('auth-container');
@@ -1760,7 +1845,7 @@
         const searchBtn = document.getElementById('search-btn');
         const views = document.querySelectorAll('.view');
         const mobileNavTabs = document.querySelectorAll('.mobile-tab');
-        const chatList = document.getElementById('chat-list');
+        const usersList = document.getElementById('users-list'); // MODIFIÉ: Liste des utilisateurs
         const friendsList = document.getElementById('friends-list');
         const friendRequestsList = document.getElementById('friend-requests-list');
         const groupsList = document.getElementById('groups-list');
@@ -1808,7 +1893,7 @@
         const groupImage = document.getElementById('group-image');
         const friendsSelectContainer = document.getElementById('friends-select-container');
         const cancelGroupBtn = document.getElementById('cancel-group-btn');
-        const createGroupModalBtn = document.getElementById('create-group-btn');
+        const confirmCreateGroupBtn = document.getElementById('confirm-create-group-btn'); // CORRIGÉ: Nouvel ID
         const notification = document.getElementById('notification');
         const voiceRecordingOverlay = document.getElementById('voice-recording-overlay');
         const voiceRecordingText = document.getElementById('voice-recording-text');
@@ -1837,6 +1922,43 @@
         const incomingCallUser = document.getElementById('incoming-call-user');
         const incomingCallType = document.getElementById('incoming-call-type');
         const logoutSetting = document.getElementById('logout-setting');
+        const backToMessages = document.getElementById('back-to-messages');
+        const backToGroups = document.getElementById('back-to-groups');
+        const groupChatView = document.getElementById('group-chat-view');
+        const groupChatPic = document.getElementById('group-chat-pic');
+        const groupChatName = document.getElementById('group-chat-name');
+        const groupChatMembers = document.getElementById('group-chat-members');
+        const groupMessagesContainer = document.getElementById('group-messages-container');
+        const groupMessageInput = document.getElementById('group-message-input');
+        const groupSendBtn = document.getElementById('group-send-btn');
+        const groupAttachmentBtn = document.getElementById('group-attachment-btn');
+        const groupFileInput = document.getElementById('group-file-input');
+        const groupMicBtn = document.getElementById('group-mic-btn');
+        const groupInfoBtn = document.getElementById('group-info-btn');
+        const groupDetailsModal = document.getElementById('group-details-modal');
+        const groupDetailsPic = document.getElementById('group-details-pic');
+        const groupDetailsName = document.getElementById('group-details-name');
+        const groupNameText = document.getElementById('group-name-text');
+        const adminBadge = document.getElementById('admin-badge');
+        const groupDetailsDescription = document.getElementById('group-details-description');
+        const groupDetailsCreator = document.getElementById('group-details-creator');
+        const groupDetailsMembersCount = document.getElementById('group-details-members-count');
+        const groupDetailsCreated = document.getElementById('group-details-created');
+        const groupMembersList = document.getElementById('group-members-list');
+        const editGroupBtn = document.getElementById('edit-group-btn');
+        const saveGroupBtn = document.getElementById('save-group-btn');
+        const deleteGroupBtn = document.getElementById('delete-group-btn');
+        const cancelEditGroupBtn = document.getElementById('cancel-edit-group-btn');
+        const editGroupName = document.getElementById('edit-group-name');
+        const editGroupNameInput = document.getElementById('edit-group-name-input');
+        const editGroupPhoto = document.getElementById('edit-group-photo');
+        const editGroupPhotoInput = document.getElementById('edit-group-photo-input');
+        const addMembersSection = document.getElementById('add-members-section');
+        const addMembersContainer = document.getElementById('add-members-container');
+        const profileSetting = document.getElementById('profile-setting');
+        const photoSetting = document.getElementById('photo-setting');
+        const securitySetting = document.getElementById('security-setting');
+        const helpSetting = document.getElementById('help-setting');
 
         // Initialisation de l'application
         document.addEventListener('DOMContentLoaded', initApp);
@@ -1852,9 +1974,15 @@
             // Gestionnaires d'événements pour le thème
             themeToggle.addEventListener('click', toggleTheme);
             
-            // Gestionnaires d'événements pour la navigation mobile
+            // Gestionnaires d'événements pour la navigation
             mobileNavTabs.forEach(tab => {
                 tab.addEventListener('click', () => switchView(tab.dataset.view));
+            });
+            
+            backToMessages.addEventListener('click', hideChatView);
+            backToGroups.addEventListener('click', () => {
+                groupChatView.classList.remove('active');
+                switchView('groups-view');
             });
             
             // Gestionnaires d'événements pour la messagerie
@@ -1866,8 +1994,19 @@
                 }
             });
             
+            groupSendBtn.addEventListener('click', sendGroupMessage);
+            groupMessageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendGroupMessage();
+                }
+            });
+            
             attachmentBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', handleFileUpload);
+            
+            groupAttachmentBtn.addEventListener('click', () => groupFileInput.click());
+            groupFileInput.addEventListener('change', handleGroupFileUpload);
             
             // Gestionnaires d'événements pour l'enregistrement vocal avancé
             micBtn.addEventListener('mousedown', startVoiceRecording);
@@ -1876,6 +2015,9 @@
             document.addEventListener('touchend', stopVoiceRecording);
             document.addEventListener('mousemove', handleVoiceRecordingMove);
             document.addEventListener('touchmove', handleVoiceRecordingMove);
+            
+            groupMicBtn.addEventListener('mousedown', startGroupVoiceRecording);
+            groupMicBtn.addEventListener('touchstart', startGroupVoiceRecording);
             
             cancelRecordingBtn.addEventListener('click', cancelVoiceRecording);
             sendRecordingBtn.addEventListener('click', sendVoiceRecording);
@@ -1926,10 +2068,24 @@
             addFriendBtn.addEventListener('click', addFriendFromProfile);
             acceptFriendBtn.addEventListener('click', acceptFriendFromProfile);
             
-            // Gestionnaires d'événements pour les groupes
+            // Gestionnaires d'événements pour les groupes - CORRIGÉ: Un seul événement
             createGroupBtn.addEventListener('click', showCreateGroupModal);
             cancelGroupBtn.addEventListener('click', closeAllModals);
-            createGroupModalBtn.addEventListener('click', createGroup);
+            confirmCreateGroupBtn.addEventListener('click', createGroup); // CORRIGÉ: Utiliser le bon ID
+            
+            groupInfoBtn.addEventListener('click', showGroupDetails);
+            editGroupBtn.addEventListener('click', enableGroupEdit);
+            saveGroupBtn.addEventListener('click', saveGroupChanges);
+            deleteGroupBtn.addEventListener('click', deleteGroup);
+            cancelEditGroupBtn.addEventListener('click', cancelGroupEdit);
+            
+            // Gestionnaires d'événements pour les paramètres
+            profileSetting.addEventListener('click', showProfileModal);
+            photoSetting.addEventListener('click', () => {
+                profilePhoto.click();
+            });
+            securitySetting.addEventListener('click', showSecuritySettings);
+            helpSetting.addEventListener('click', showHelpSettings);
             
             // Écouteur pour la déconnexion
             window.addEventListener('beforeunload', () => {
@@ -1966,6 +2122,11 @@
 
             // Ajustement automatique de la hauteur du textarea
             messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+            
+            groupMessageInput.addEventListener('input', function() {
                 this.style.height = 'auto';
                 this.style.height = (this.scrollHeight) + 'px';
             });
@@ -2017,7 +2178,6 @@
                 .then((userCredential) => {
                     const user = userCredential.user;
                     
-                    // CORRECTION: Utiliser set() avec merge: true pour créer ou mettre à jour le profil
                     return db.collection('users').doc(user.uid).set({
                         uid: user.uid,
                         username: username,
@@ -2045,7 +2205,6 @@
                 .then((result) => {
                     const user = result.user;
                     
-                    // CORRECTION: Utiliser set() avec merge: true pour créer ou mettre à jour le profil
                     return db.collection('users').doc(user.uid).set({
                         uid: user.uid,
                         username: user.displayName || user.email.split('@')[0],
@@ -2130,7 +2289,9 @@
             });
             
             // Charger les données spécifiques à la vue
-            if (viewId === 'friends-view') {
+            if (viewId === 'messages-view') {
+                loadUsersList(); // MODIFIÉ: Charger la liste des utilisateurs
+            } else if (viewId === 'friends-view') {
                 loadFriendsList();
                 loadFriendRequests();
             } else if (viewId === 'groups-view') {
@@ -2149,19 +2310,27 @@
             // Afficher la vue de chat
             document.getElementById('chat-view').classList.add('active');
             
-            // Masquer la barre de navigation mobile
-            document.querySelector('.mobile-nav').style.display = 'none';
+            // La barre de navigation reste visible (position: fixed)
         }
 
         function hideChatView() {
             // Masquer la vue de chat
             document.getElementById('chat-view').classList.remove('active');
             
-            // Afficher la barre de navigation mobile
-            document.querySelector('.mobile-nav').style.display = 'block';
-            
             // Revenir à la vue Messages
             switchView('messages-view');
+        }
+
+        function showGroupChatView() {
+            // Masquer toutes les vues
+            views.forEach(view => {
+                view.classList.remove('active');
+            });
+            
+            // Afficher la vue de chat de groupe
+            groupChatView.classList.add('active');
+            
+            // La barre de navigation reste visible (position: fixed)
         }
 
         // =====================================================
@@ -2200,7 +2369,6 @@
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp()
             };
             
-            // CORRECTION: Utiliser set() avec merge pour éviter "No document to update"
             db.collection('users').doc(currentUser.uid).set(statusUpdate, { merge: true })
                 .catch(error => {
                     console.error('Erreur lors de la mise à jour du statut:', error);
@@ -2240,7 +2408,6 @@
                         showNotification('Erreur lors de la mise à jour du profil: ' + error.message, 'error');
                     });
             } else {
-                // CORRECTION: Utiliser set() avec merge pour éviter "No document to update"
                 db.collection('users').doc(currentUser.uid).set(updates, { merge: true })
                     .then(() => {
                         showNotification('Profil mis à jour avec succès', 'success');
@@ -2265,8 +2432,8 @@
                 return;
             }
             
-            // Afficher les résultats de recherche dans la liste des messages
-            chatList.innerHTML = '';
+            // Afficher les résultats de recherche dans la liste des utilisateurs
+            usersList.innerHTML = '';
             
             // Recherche par préfixe insensible à la casse avec caractère Unicode
             db.collection('users')
@@ -2275,7 +2442,7 @@
                 .get()
                 .then(snapshot => {
                     if (snapshot.empty) {
-                        chatList.innerHTML = `
+                        usersList.innerHTML = `
                             <div class="empty-state">
                                 <i class="fas fa-search"></i>
                                 <p>Aucun utilisateur trouvé</p>
@@ -2306,14 +2473,59 @@
                         `;
                         
                         searchItem.addEventListener('click', () => {
-                            showUserDetails(user);
+                            openChatWithUser(user.uid, user.username);
                         });
                         
-                        chatList.appendChild(searchItem);
+                        usersList.appendChild(searchItem);
                     });
                 })
                 .catch(error => {
                     showNotification('Erreur lors de la recherche: ' + error.message, 'error');
+                });
+        }
+
+        // MODIFIÉ: Charger tous les utilisateurs dans la vue Messages
+        function loadUsersList() {
+            usersList.innerHTML = '';
+            
+            db.collection('users').get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        usersList.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-users"></i>
+                                <p>Aucun utilisateur</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const user = doc.data();
+                        if (user.uid === currentUser.uid) return; // Ne pas afficher l'utilisateur courant
+                        
+                        const userItem = document.createElement('li');
+                        userItem.className = 'chat-item';
+                        userItem.innerHTML = `
+                            <div class="profile-container">
+                                <img src="${user.photoURL || 'https://via.placeholder.com/50'}" alt="Photo de profil" class="profile-pic">
+                                <div class="online-indicator" style="background-color: ${user.isOnline ? '#42B72A' : '#65676B'}"></div>
+                            </div>
+                            <div class="chat-info">
+                                <div class="chat-name">${user.username}</div>
+                                <div class="last-message">${user.email}</div>
+                            </div>
+                        `;
+                        
+                        userItem.addEventListener('click', () => {
+                            openChatWithUser(user.uid, user.username);
+                        });
+                        
+                        usersList.appendChild(userItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des utilisateurs:', error);
                 });
         }
 
@@ -2326,7 +2538,7 @@
             userDetailsJoined.textContent = user.dateJoined ? user.dateJoined.toDate().toLocaleDateString() : 'Date inconnue';
             userDetailsStatus.textContent = user.isOnline ? 'En ligne' : 'Hors ligne';
             
-            // CORRECTION: Vérifier l'état de la relation d'amitié avec un écouteur en temps réel
+            // Vérifier l'état de la relation d'amitié avec un écouteur en temps réel
             checkFriendshipStatus(currentUser.uid, user.uid);
             
             userDetailsModal.style.display = 'flex';
@@ -2393,7 +2605,7 @@
             // Fermer la modale
             closeAllModals();
             
-            // CORRECTION: Créer ou ouvrir un chat avec cet utilisateur
+            // Créer ou ouvrir un chat avec cet utilisateur
             openChatWithUser(userDetailsId, userDetailsName);
         }
 
@@ -2460,7 +2672,7 @@
         }
 
         function loadFriendsList() {
-            // CORRECTION: Charger la liste d'amis depuis les demandes acceptées
+            // Charger la liste d'amis depuis les demandes acceptées
             db.collection('friend_requests')
                 .where('status', '==', 'accepted')
                 .where('from', '==', currentUser.uid)
@@ -2622,7 +2834,7 @@
                 status: 'sent' // Statut initial
             };
             
-            // CORRECTION: Vérifier si le chat existe avant d'envoyer un message
+            // Vérifier si le chat existe avant d'envoyer un message
             const chatRef = db.collection('chats').doc(currentChat.id);
             
             chatRef.get().then(doc => {
@@ -2661,17 +2873,17 @@
             });
         }
 
-        // CORRECTION: Fonction unique pour ouvrir un chat
+        // CORRIGÉ: Fonction unique pour ouvrir un chat avec gestion des permissions
         function openChatWithUser(otherUserId, otherUserName) {
             // Générer un ID de chat unique basé sur les IDs des utilisateurs
             const chatId = [currentUser.uid, otherUserId].sort().join('_');
             
             const chatRef = db.collection('chats').doc(chatId);
             
-            // Vérifier si le chat existe
+            // CORRECTION: Gestion robuste des permissions de chat
             chatRef.get().then(doc => {
                 if (!doc.exists) {
-                    // Créer le chat s'il n'existe pas
+                    // Le chat n'existe pas, le créer
                     return chatRef.set({
                         participants: [currentUser.uid, otherUserId],
                         lastMessage: '',
@@ -2679,6 +2891,7 @@
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
+                return Promise.resolve(); // Le chat existe déjà
             })
             .then(() => {
                 // Maintenant, ouvrir le chat
@@ -2701,6 +2914,7 @@
                 showChatView();
             })
             .catch(error => {
+                console.error('Erreur lors de l\'ouverture du chat:', error);
                 showNotification('Erreur lors de l\'ouverture du chat: ' + error.message, 'error');
             });
         }
@@ -2724,6 +2938,561 @@
                     loadChatMessages(chatId);
                 });
         }
+
+        function loadChatMessages(chatId) {
+            // Vider le conteneur de messages
+            messagesContainer.innerHTML = '';
+            
+            // Charger les messages depuis Firestore
+            db.collection('chats').doc(chatId).collection('messages')
+                .orderBy('timestamp', 'asc')
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        const infoMessage = document.createElement('div');
+                        infoMessage.className = 'empty-state';
+                        infoMessage.innerHTML = `
+                            <i class="fas fa-comment-slash"></i>
+                            <p>Aucun message dans cette conversation</p>
+                            <p>Soyez le premier à envoyer un message !</p>
+                        `;
+                        messagesContainer.appendChild(infoMessage);
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const message = doc.data();
+                        displayMessage(message);
+                    });
+                    
+                    // Faire défiler vers le bas
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des messages:', error);
+                });
+        }
+
+        function displayMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${message.senderId === currentUser.uid ? 'message-sent' : 'message-received'}`;
+            
+            let messageContent = '';
+            if (message.mediaUrl) {
+                if (message.mediaType === 'image') {
+                    messageContent = `<img src="${message.mediaUrl}" alt="Image" class="message-media">`;
+                } else if (message.mediaType === 'video') {
+                    messageContent = `<video src="${message.mediaUrl}" controls class="message-media"></video>`;
+                } else if (message.mediaType === 'audio') {
+                    messageContent = `<audio src="${message.mediaUrl}" controls class="message-audio"></audio>`;
+                }
+            } else {
+                messageContent = `<div class="message-text">${message.text}</div>`;
+            }
+            
+            messageElement.innerHTML = `
+                ${messageContent}
+                <div class="message-time">${formatTime(message.timestamp)}</div>
+            `;
+            
+            messagesContainer.appendChild(messageElement);
+        }
+
+        // =====================================================
+        // FONCTIONS DE GESTION DES GROUPES (CORRIGÉES)
+        // =====================================================
+
+        function showCreateGroupModal() {
+            // Charger la liste des amis pour la sélection
+            loadFriendsForGroup();
+            createGroupModal.style.display = 'flex';
+        }
+
+        function loadFriendsForGroup() {
+            friendsSelectContainer.innerHTML = '';
+            
+            // Charger la liste des amis
+            db.collection('friend_requests')
+                .where('status', '==', 'accepted')
+                .where('from', '==', currentUser.uid)
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        friendsSelectContainer.innerHTML = '<p>Aucun ami à ajouter</p>';
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const request = doc.data();
+                        // Charger les informations de l'ami
+                        db.collection('users').doc(request.to).get()
+                            .then(userDoc => {
+                                if (userDoc.exists) {
+                                    const user = userDoc.data();
+                                    const friendCheckbox = document.createElement('div');
+                                    friendCheckbox.className = 'friend-checkbox';
+                                    friendCheckbox.innerHTML = `
+                                        <input type="checkbox" id="friend-${user.uid}" value="${user.uid}">
+                                        <label for="friend-${user.uid}">${user.username}</label>
+                                    `;
+                                    friendsSelectContainer.appendChild(friendCheckbox);
+                                }
+                            });
+                    });
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des amis:', error);
+                });
+        }
+
+        // CORRIGÉ: Fonction de création de groupe avec protection contre la boucle
+        function createGroup() {
+            // Vérifier si une création est déjà en cours
+            if (groupCreationInProgress) {
+                showNotification('Création de groupe en cours...', 'info');
+                return;
+            }
+            
+            const name = groupName.value.trim();
+            const description = groupDescription.value.trim();
+            
+            if (!name) {
+                showNotification('Le nom du groupe est requis', 'error');
+                return;
+            }
+            
+            // Récupérer les membres sélectionnés
+            const selectedMembers = [];
+            const checkboxes = friendsSelectContainer.querySelectorAll('input[type="checkbox"]:checked');
+            checkboxes.forEach(checkbox => {
+                selectedMembers.push(checkbox.value);
+            });
+            
+            // Ajouter l'utilisateur actuel comme membre
+            selectedMembers.push(currentUser.uid);
+            
+            const groupData = {
+                name: name,
+                description: description,
+                members: selectedMembers,
+                createdBy: currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            // Marquer la création comme en cours
+            groupCreationInProgress = true;
+            confirmCreateGroupBtn.disabled = true;
+            confirmCreateGroupBtn.textContent = 'Création...';
+            
+            // Gérer l'image de groupe si elle a été sélectionnée
+            const createGroupProcess = groupImage.files[0] 
+                ? uploadToCloudinary(groupImage.files[0], 'image').then(result => {
+                    groupData.image = result.secure_url;
+                    return db.collection('groups').add(groupData);
+                })
+                : db.collection('groups').add(groupData);
+            
+            createGroupProcess
+                .then((docRef) => {
+                    showNotification('Groupe créé avec succès', 'success');
+                    closeAllModals();
+                    
+                    // Réinitialiser le formulaire
+                    groupName.value = '';
+                    groupDescription.value = '';
+                    groupImage.value = '';
+                    
+                    // Recharger la liste des groupes
+                    loadGroupsList();
+                    
+                    // Rediriger vers la conversation du groupe
+                    openGroupChat(docRef.id, name);
+                })
+                .catch(error => {
+                    showNotification('Erreur lors de la création du groupe: ' + error.message, 'error');
+                })
+                .finally(() => {
+                    // Réactiver le bouton et réinitialiser l'état
+                    groupCreationInProgress = false;
+                    confirmCreateGroupBtn.disabled = false;
+                    confirmCreateGroupBtn.textContent = 'Créer';
+                });
+        }
+
+        function openGroupChat(groupId, groupName) {
+            // Stocker le groupe actuel
+            currentGroup = {
+                id: groupId,
+                name: groupName
+            };
+            
+            // Mettre à jour l'interface
+            groupChatName.textContent = groupName;
+            groupChatPic.src = 'https://via.placeholder.com/40';
+            
+            // Charger les messages du groupe
+            loadGroupMessages(groupId);
+            
+            // Écouter les nouveaux messages en temps réel
+            setupGroupChatListener(groupId);
+            
+            // Afficher la vue de chat de groupe
+            showGroupChatView();
+        }
+
+        function loadGroupMessages(groupId) {
+            // Vider le conteneur de messages
+            groupMessagesContainer.innerHTML = '';
+            
+            // Charger les messages depuis Firestore
+            db.collection('groups').doc(groupId).collection('messages')
+                .orderBy('timestamp', 'asc')
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        const infoMessage = document.createElement('div');
+                        infoMessage.className = 'empty-state';
+                        infoMessage.innerHTML = `
+                            <i class="fas fa-comment-slash"></i>
+                            <p>Aucun message dans ce groupe</p>
+                            <p>Soyez le premier à envoyer un message !</p>
+                        `;
+                        groupMessagesContainer.appendChild(infoMessage);
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const message = doc.data();
+                        displayGroupMessage(message);
+                    });
+                    
+                    // Faire défiler vers le bas
+                    groupMessagesContainer.scrollTop = groupMessagesContainer.scrollHeight;
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des messages du groupe:', error);
+                });
+        }
+
+        function displayGroupMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${message.senderId === currentUser.uid ? 'message-sent' : 'message-received'}`;
+            
+            let messageContent = '';
+            if (message.mediaUrl) {
+                if (message.mediaType === 'image') {
+                    messageContent = `<img src="${message.mediaUrl}" alt="Image" class="message-media">`;
+                } else if (message.mediaType === 'video') {
+                    messageContent = `<video src="${message.mediaUrl}" controls class="message-media"></video>`;
+                } else if (message.mediaType === 'audio') {
+                    messageContent = `<audio src="${message.mediaUrl}" controls class="message-audio"></audio>`;
+                }
+            } else {
+                messageContent = `<div class="message-text">${message.text}</div>`;
+            }
+            
+            messageElement.innerHTML = `
+                ${messageContent}
+                <div class="message-time">${formatTime(message.timestamp)}</div>
+            `;
+            
+            groupMessagesContainer.appendChild(messageElement);
+        }
+
+        function sendGroupMessage() {
+            const messageText = groupMessageInput.value.trim();
+            
+            if (!messageText || !currentGroup) return;
+            
+            const message = {
+                senderId: currentUser.uid,
+                text: messageText,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'sent'
+            };
+            
+            db.collection('groups').doc(currentGroup.id).collection('messages').add(message)
+                .then(() => {
+                    // Mettre à jour le dernier message du groupe
+                    return db.collection('groups').doc(currentGroup.id).update({
+                        lastMessage: messageText,
+                        lastMessageTime: message.timestamp
+                    });
+                })
+                .then(() => {
+                    // Réinitialiser le champ de message
+                    groupMessageInput.value = '';
+                    
+                    // Ajuster la hauteur du textarea
+                    groupMessageInput.style.height = 'auto';
+                })
+                .catch(error => {
+                    showNotification('Erreur lors de l\'envoi du message: ' + error.message, 'error');
+                });
+        }
+
+        function setupGroupChatListener(groupId) {
+            // Écouter les messages en temps réel
+            db.collection('groups').doc(groupId).collection('messages')
+                .orderBy('timestamp', 'asc')
+                .onSnapshot(snapshot => {
+                    loadGroupMessages(groupId);
+                });
+        }
+
+        function loadGroupsList() {
+            // Charger les groupes dont l'utilisateur est membre
+            db.collection('groups')
+                .where('members', 'array-contains', currentUser.uid)
+                .get()
+                .then(snapshot => {
+                    groupsList.innerHTML = '';
+                    
+                    if (snapshot.empty) {
+                        groupsList.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-user-friends"></i>
+                                <p>Aucun groupe</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const group = doc.data();
+                        const groupItem = document.createElement('li');
+                        groupItem.className = 'group-item';
+                        groupItem.innerHTML = `
+                            <div class="profile-container">
+                                <img src="${group.image || 'https://via.placeholder.com/50'}" alt="Photo du groupe" class="profile-pic">
+                            </div>
+                            <div class="group-info">
+                                <div class="group-name">${group.name}</div>
+                                <div class="group-members">${group.members.length} membres</div>
+                            </div>
+                        `;
+                        
+                        groupItem.addEventListener('click', () => {
+                            openGroupChat(doc.id, group.name);
+                        });
+                        
+                        groupsList.appendChild(groupItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des groupes:', error);
+                });
+        }
+
+        // =====================================================
+        // FONCTIONS POUR LES DÉTAILS DU GROUPE
+        // =====================================================
+
+        function showGroupDetails() {
+            if (!currentGroup) return;
+            
+            // Charger les détails du groupe
+            db.collection('groups').doc(currentGroup.id).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const group = doc.data();
+                        
+                        // Mettre à jour l'interface
+                        groupDetailsPic.src = group.image || 'https://via.placeholder.com/100';
+                        groupNameText.textContent = group.name;
+                        groupDetailsDescription.textContent = group.description || 'Aucune description';
+                        groupDetailsCreator.textContent = 'Chargement...';
+                        groupDetailsMembersCount.textContent = group.members.length;
+                        groupDetailsCreated.textContent = group.createdAt ? group.createdAt.toDate().toLocaleDateString() : 'Date inconnue';
+                        
+                        // Vérifier si l'utilisateur est l'administrateur
+                        const isAdmin = group.createdBy === currentUser.uid;
+                        adminBadge.style.display = isAdmin ? 'inline-block' : 'none';
+                        
+                        // Charger le nom du créateur
+                        db.collection('users').doc(group.createdBy).get()
+                            .then(userDoc => {
+                                if (userDoc.exists) {
+                                    const creator = userDoc.data();
+                                    groupDetailsCreator.textContent = creator.username;
+                                }
+                            });
+                        
+                        // Charger la liste des membres
+                        loadGroupMembers(group.members);
+                        
+                        // Afficher la modale
+                        groupDetailsModal.style.display = 'flex';
+                    }
+                })
+                .catch(error => {
+                    showNotification('Erreur lors du chargement des détails du groupe: ' + error.message, 'error');
+                });
+        }
+
+        function loadGroupMembers(memberIds) {
+            groupMembersList.innerHTML = '';
+            
+            memberIds.forEach(memberId => {
+                db.collection('users').doc(memberId).get()
+                    .then(doc => {
+                        if (doc.exists) {
+                            const user = doc.data();
+                            const memberItem = document.createElement('div');
+                            memberItem.className = 'group-member-item';
+                            memberItem.innerHTML = `
+                                <div class="profile-container">
+                                    <img src="${user.photoURL || 'https://via.placeholder.com/40'}" alt="Photo de profil" class="profile-pic">
+                                    <div class="online-indicator" style="background-color: ${user.isOnline ? '#42B72A' : '#65676B'}"></div>
+                                </div>
+                                <div class="chat-info">
+                                    <div class="chat-name">${user.username}</div>
+                                    <div class="last-message">${user.isOnline ? 'En ligne' : 'Hors ligne'}</div>
+                                </div>
+                            `;
+                            
+                            groupMembersList.appendChild(memberItem);
+                        }
+                    });
+            });
+        }
+
+        function enableGroupEdit() {
+            // Activer l'édition
+            editGroupName.style.display = 'block';
+            editGroupPhoto.style.display = 'block';
+            addMembersSection.style.display = 'block';
+            
+            // Pré-remplir les champs d'édition
+            editGroupNameInput.value = groupNameText.textContent;
+            
+            // Afficher les boutons d'édition
+            editGroupBtn.style.display = 'none';
+            saveGroupBtn.style.display = 'inline-block';
+            deleteGroupBtn.style.display = 'inline-block';
+            cancelEditGroupBtn.style.display = 'inline-block';
+            
+            // Charger les amis pour l'ajout de membres
+            loadFriendsForGroupAddition();
+        }
+
+        function loadFriendsForGroupAddition() {
+            addMembersContainer.innerHTML = '';
+            
+            // Charger la liste des amis
+            db.collection('friend_requests')
+                .where('status', '==', 'accepted')
+                .where('from', '==', currentUser.uid)
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        addMembersContainer.innerHTML = '<p>Aucun ami à ajouter</p>';
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const request = doc.data();
+                        // Charger les informations de l'ami
+                        db.collection('users').doc(request.to).get()
+                            .then(userDoc => {
+                                if (userDoc.exists) {
+                                    const user = userDoc.data();
+                                    const friendCheckbox = document.createElement('div');
+                                    friendCheckbox.className = 'friend-checkbox';
+                                    friendCheckbox.innerHTML = `
+                                        <input type="checkbox" id="add-friend-${user.uid}" value="${user.uid}">
+                                        <label for="add-friend-${user.uid}">${user.username}</label>
+                                    `;
+                                    addMembersContainer.appendChild(friendCheckbox);
+                                }
+                            });
+                    });
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des amis:', error);
+                });
+        }
+
+        function saveGroupChanges() {
+            if (!currentGroup) return;
+            
+            const updates = {};
+            
+            // Vérifier les modifications du nom
+            if (editGroupNameInput.value.trim() !== groupNameText.textContent) {
+                updates.name = editGroupNameInput.value.trim();
+            }
+            
+            // Gérer la nouvelle photo si elle a été sélectionnée
+            const updateProcess = editGroupPhotoInput.files[0] 
+                ? uploadToCloudinary(editGroupPhotoInput.files[0], 'image').then(result => {
+                    updates.image = result.secure_url;
+                    return db.collection('groups').doc(currentGroup.id).update(updates);
+                })
+                : Object.keys(updates).length > 0 
+                    ? db.collection('groups').doc(currentGroup.id).update(updates)
+                    : Promise.resolve();
+            
+            updateProcess
+                .then(() => {
+                    showNotification('Groupe mis à jour avec succès', 'success');
+                    cancelGroupEdit();
+                    showGroupDetails(); // Recharger les détails
+                })
+                .catch(error => {
+                    showNotification('Erreur lors de la mise à jour du groupe: ' + error.message, 'error');
+                });
+        }
+
+        function deleteGroup() {
+            if (!currentGroup) return;
+            
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce groupe ? Cette action est irréversible.')) {
+                db.collection('groups').doc(currentGroup.id).delete()
+                    .then(() => {
+                        showNotification('Groupe supprimé avec succès', 'success');
+                        closeAllModals();
+                        switchView('groups-view');
+                        loadGroupsList();
+                    })
+                    .catch(error => {
+                        showNotification('Erreur lors de la suppression du groupe: ' + error.message, 'error');
+                    });
+            }
+        }
+
+        function cancelGroupEdit() {
+            // Désactiver l'édition
+            editGroupName.style.display = 'none';
+            editGroupPhoto.style.display = 'none';
+            addMembersSection.style.display = 'none';
+            
+            // Réinitialiser les champs
+            editGroupNameInput.value = '';
+            editGroupPhotoInput.value = '';
+            
+            // Afficher les boutons normaux
+            editGroupBtn.style.display = 'inline-block';
+            saveGroupBtn.style.display = 'none';
+            deleteGroupBtn.style.display = 'none';
+            cancelEditGroupBtn.style.display = 'none';
+        }
+
+        // =====================================================
+        // FONCTIONS POUR LES PARAMÈTRES PROFESSIONNELS
+        // =====================================================
+
+        function showSecuritySettings() {
+            showNotification('Section Sécurité et Confidentialité - À implémenter', 'info');
+        }
+
+        function showHelpSettings() {
+            showNotification('Section Aide et Assistance - À implémenter', 'info');
+        }
+
+        // =====================================================
+        // FONCTIONS UTILITAIRES
+        // =====================================================
 
         function handleFileUpload(event) {
             const file = event.target.files[0];
@@ -2749,6 +3518,42 @@
             reader.readAsDataURL(file);
             
             fileInput.value = ''; // Réinitialiser l'input fichier
+        }
+
+        function handleGroupFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !currentGroup) return;
+            
+            // Déterminer le type de ressource pour Cloudinary
+            let resourceType = 'auto';
+            if (file.type.startsWith('image/')) {
+                resourceType = 'image';
+            } else if (file.type.startsWith('video/')) {
+                resourceType = 'video';
+            }
+            
+            // Téléverser le fichier vers Cloudinary
+            uploadToCloudinary(file, resourceType)
+                .then(result => {
+                    // Créer un message média
+                    const message = {
+                        senderId: currentUser.uid,
+                        mediaUrl: result.secure_url,
+                        mediaType: resourceType,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        status: 'sent'
+                    };
+                    
+                    return db.collection('groups').doc(currentGroup.id).collection('messages').add(message);
+                })
+                .then(() => {
+                    showNotification('Fichier envoyé avec succès', 'success');
+                })
+                .catch(error => {
+                    showNotification('Erreur lors de l\'envoi du fichier: ' + error.message, 'error');
+                });
+            
+            groupFileInput.value = ''; // Réinitialiser l'input fichier
         }
 
         function toggleDrawing(enable = null) {
@@ -2924,7 +3729,7 @@
                             status: 'sent'
                         };
                         
-                        // CORRECTION: Vérifier si le chat existe avant d'envoyer un message média
+                        // Vérifier si le chat existe avant d'envoyer un message média
                         const chatRef = db.collection('chats').doc(currentChat.id);
                         
                         return chatRef.get().then(doc => {
@@ -2983,6 +3788,46 @@
             
             if (!currentChat) {
                 showNotification('Veuillez d\'abord sélectionner une conversation', 'error');
+                return;
+            }
+            
+            isRecording = true;
+            voiceRecordingOverlay.style.display = 'flex';
+            voiceRecordingText.textContent = 'Enregistrement en cours...';
+            voiceRecordingLock.style.display = 'none';
+            voiceRecordingActions.style.display = 'none';
+            
+            // Enregistrer la position de départ pour le glissement
+            voiceRecordingStartY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
+            
+            audioChunks = [];
+            
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+                    
+                    mediaRecorder.onstop = () => {
+                        // Ne rien faire ici, nous gérons l'arrêt manuellement
+                    };
+                    
+                    mediaRecorder.start();
+                })
+                .catch(error => {
+                    showNotification('Erreur d\'accès au microphone: ' + error.message, 'error');
+                    isRecording = false;
+                    voiceRecordingOverlay.style.display = 'none';
+                });
+        }
+
+        function startGroupVoiceRecording(e) {
+            e.preventDefault();
+            
+            if (!currentGroup) {
+                showNotification('Veuillez d\'abord sélectionner un groupe', 'error');
                 return;
             }
             
@@ -3116,7 +3961,7 @@
                         status: 'sent'
                     };
                     
-                    // CORRECTION: Vérifier si le chat existe avant d'envoyer un message audio
+                    // Vérifier si le chat existe avant d'envoyer un message audio
                     const chatRef = db.collection('chats').doc(currentChat.id);
                     
                     return chatRef.get().then(doc => {
@@ -3194,7 +4039,7 @@
                 }
             });
             
-            // CORRECTION: Stocker l'ID PeerJS dans le profil utilisateur
+            // Stocker l'ID PeerJS dans le profil utilisateur
             db.collection('users').doc(currentUser.uid).update({
                 peerId: peer.id
             }).catch(error => {
@@ -3227,7 +4072,7 @@
                 showNotification('Erreur de connexion d\'appel', 'error');
             });
             
-            // CORRECTION: Écouter les offres d'appel dans Firestore
+            // Écouter les offres d'appel dans Firestore
             db.collection('calls')
                 .where('to', '==', currentUser.uid)
                 .where('status', '==', 'ringing')
@@ -3242,7 +4087,7 @@
         }
 
         function initializeLocalStream() {
-            // CORRECTION: Initialiser le flux média local après l'authentification
+            // Initialiser le flux média local après l'authentification
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then(stream => {
                     localStream = stream;
@@ -3269,13 +4114,13 @@
                 return;
             }
             
-            // CORRECTION: Vérifier que le flux local existe
+            // Vérifier que le flux local existe
             if (!localStream) {
                 showNotification('Impossible d\'accéder à la caméra/microphone', 'error');
                 return;
             }
             
-            // CORRECTION: Obtenir l'ID PeerJS de l'utilisateur cible
+            // Obtenir l'ID PeerJS de l'utilisateur cible
             db.collection('users').doc(currentChat.otherUserId).get()
                 .then(doc => {
                     if (!doc.exists) {
@@ -3324,7 +4169,7 @@
                                 endCall();
                             });
                             
-                            // CORRECTION: Créer une entrée dans Firestore pour la signalisation
+                            // Créer une entrée dans Firestore pour la signalisation
                             return db.collection('calls').add({
                                 from: currentUser.uid,
                                 fromName: currentUser.displayName || currentUser.email,
@@ -3381,7 +4226,7 @@
                         endCall();
                     });
                     
-                    // CORRECTION: Mettre à jour le statut de l'appel dans Firestore
+                    // Mettre à jour le statut de l'appel dans Firestore
                     if (currentCallData) {
                         db.collection('calls').doc(currentCallData.id).update({
                             status: 'accepted'
@@ -3400,7 +4245,7 @@
                 currentCall.close();
             }
             
-            // CORRECTION: Mettre à jour le statut de l'appel dans Firestore
+            // Mettre à jour le statut de l'appel dans Firestore
             if (currentCallData) {
                 db.collection('calls').doc(currentCallData.id).update({
                     status: 'declined'
@@ -3417,7 +4262,7 @@
                 currentCall.close();
             }
             
-            // CORRECTION: Mettre à jour le statut de l'appel dans Firestore
+            // Mettre à jour le statut de l'appel dans Firestore
             if (currentCallData) {
                 db.collection('calls').doc(currentCallData.id).update({
                     status: 'ended'
@@ -3460,150 +4305,6 @@
                     icon.classList.add('fa-microphone-slash');
                 }
             }
-        }
-
-        // =====================================================
-        // FONCTIONS DE GESTION DES GROUPES
-        // =====================================================
-
-        function showCreateGroupModal() {
-            // Charger la liste des amis pour la sélection
-            loadFriendsForGroup();
-            createGroupModal.style.display = 'flex';
-        }
-
-        function loadFriendsForGroup() {
-            friendsSelectContainer.innerHTML = '';
-            
-            // Charger la liste des amis
-            db.collection('friend_requests')
-                .where('status', '==', 'accepted')
-                .where('from', '==', currentUser.uid)
-                .get()
-                .then(snapshot => {
-                    if (snapshot.empty) {
-                        friendsSelectContainer.innerHTML = '<p>Aucun ami à ajouter</p>';
-                        return;
-                    }
-                    
-                    snapshot.forEach(doc => {
-                        const request = doc.data();
-                        // Charger les informations de l'ami
-                        db.collection('users').doc(request.to).get()
-                            .then(userDoc => {
-                                if (userDoc.exists) {
-                                    const user = userDoc.data();
-                                    const friendCheckbox = document.createElement('div');
-                                    friendCheckbox.className = 'friend-checkbox';
-                                    friendCheckbox.innerHTML = `
-                                        <input type="checkbox" id="friend-${user.uid}" value="${user.uid}">
-                                        <label for="friend-${user.uid}">${user.username}</label>
-                                    `;
-                                    friendsSelectContainer.appendChild(friendCheckbox);
-                                }
-                            });
-                    });
-                })
-                .catch(error => {
-                    console.error('Erreur lors du chargement des amis:', error);
-                });
-        }
-
-        function createGroup() {
-            const name = groupName.value.trim();
-            const description = groupDescription.value.trim();
-            
-            if (!name) {
-                showNotification('Le nom du groupe est requis', 'error');
-                return;
-            }
-            
-            // Récupérer les membres sélectionnés
-            const selectedMembers = [];
-            const checkboxes = friendsSelectContainer.querySelectorAll('input[type="checkbox"]:checked');
-            checkboxes.forEach(checkbox => {
-                selectedMembers.push(checkbox.value);
-            });
-            
-            // Ajouter l'utilisateur actuel comme membre
-            selectedMembers.push(currentUser.uid);
-            
-            const groupData = {
-                name: name,
-                description: description,
-                members: selectedMembers,
-                createdBy: currentUser.uid,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            // Gérer l'image de groupe si elle a été sélectionnée
-            if (groupImage.files[0]) {
-                uploadToCloudinary(groupImage.files[0], 'image')
-                    .then(result => {
-                        groupData.image = result.secure_url;
-                        return db.collection('groups').add(groupData);
-                    })
-                    .then(() => {
-                        showNotification('Groupe créé avec succès', 'success');
-                        closeAllModals();
-                        // Recharger la liste des groupes
-                        loadGroupsList();
-                    })
-                    .catch(error => {
-                        showNotification('Erreur lors de la création du groupe: ' + error.message, 'error');
-                    });
-            } else {
-                db.collection('groups').add(groupData)
-                    .then(() => {
-                        showNotification('Groupe créé avec succès', 'success');
-                        closeAllModals();
-                        // Recharger la liste des groupes
-                        loadGroupsList();
-                    })
-                    .catch(error => {
-                        showNotification('Erreur lors de la création du groupe: ' + error.message, 'error');
-                    });
-            }
-        }
-
-        function loadGroupsList() {
-            // Charger les groupes dont l'utilisateur est membre
-            db.collection('groups')
-                .where('members', 'array-contains', currentUser.uid)
-                .get()
-                .then(snapshot => {
-                    groupsList.innerHTML = '';
-                    
-                    if (snapshot.empty) {
-                        groupsList.innerHTML = `
-                            <div class="empty-state">
-                                <i class="fas fa-user-friends"></i>
-                                <p>Aucun groupe</p>
-                            </div>
-                        `;
-                        return;
-                    }
-                    
-                    snapshot.forEach(doc => {
-                        const group = doc.data();
-                        const groupItem = document.createElement('li');
-                        groupItem.className = 'group-item';
-                        groupItem.innerHTML = `
-                            <div class="profile-container">
-                                <img src="${group.image || 'https://via.placeholder.com/50'}" alt="Photo du groupe" class="profile-pic">
-                            </div>
-                            <div class="group-info">
-                                <div class="group-name">${group.name}</div>
-                                <div class="group-members">${group.members.length} membres</div>
-                            </div>
-                        `;
-                        
-                        groupsList.appendChild(groupItem);
-                    });
-                })
-                .catch(error => {
-                    console.error('Erreur lors du chargement des groupes:', error);
-                });
         }
 
         // =====================================================
@@ -3706,6 +4407,11 @@
                 friendRequestListener();
                 friendRequestListener = null;
             }
+            
+            // Réinitialiser l'état de création de groupe
+            groupCreationInProgress = false;
+            confirmCreateGroupBtn.disabled = false;
+            confirmCreateGroupBtn.textContent = 'Créer';
         }
 
         // =====================================================
@@ -3758,7 +4464,7 @@
             db.collection('chats')
                 .where('participants', 'array-contains', currentUser.uid)
                 .onSnapshot(snapshot => {
-                    updateChatList(snapshot);
+                    // Ne pas afficher les conversations dans la vue Messages (maintenant c'est la liste des utilisateurs)
                 });
             
             // Écouter les invitations d'amis
@@ -3771,134 +4477,6 @@
                         loadFriendRequests();
                     }
                 });
-        }
-
-        function updateChatList(snapshot) {
-            // Vider la liste des chats
-            const existingEmptyState = chatList.querySelector('.empty-state');
-            if (existingEmptyState) {
-                existingEmptyState.remove();
-            }
-            
-            chatList.innerHTML = '';
-            
-            if (snapshot.empty) {
-                // Afficher l'état vide
-                const emptyState = document.createElement('div');
-                emptyState.className = 'empty-state';
-                emptyState.innerHTML = `
-                    <i class="fas fa-comments"></i>
-                    <p>Aucune conversation</p>
-                `;
-                chatList.appendChild(emptyState);
-                return;
-            }
-            
-            snapshot.forEach(doc => {
-                const chat = { id: doc.id, ...doc.data() };
-                const chatItem = document.createElement('li');
-                chatItem.className = 'chat-item';
-                
-                // Déterminer le nom et la photo du chat
-                let chatName = '';
-                let chatImage = '';
-                
-                if (chat.isGroup) {
-                    chatName = chat.groupName;
-                    chatImage = chat.groupImage || 'https://via.placeholder.com/50';
-                } else {
-                    // Trouver l'autre participant
-                    const otherParticipantId = chat.participants.find(id => id !== currentUser.uid);
-                    // Dans une vraie application, nous chargerions les données de cet utilisateur
-                    chatName = 'Utilisateur';
-                    chatImage = 'https://via.placeholder.com/50';
-                }
-                
-                chatItem.innerHTML = `
-                    <div class="profile-container">
-                        <img src="${chatImage}" alt="Photo de profil" class="profile-pic">
-                        <div class="online-indicator"></div>
-                    </div>
-                    <div class="chat-info">
-                        <div class="chat-name">${chatName}</div>
-                        <div class="last-message">${chat.lastMessage || 'Aucun message'}</div>
-                        <div class="message-status status-sent">${getMessageStatusText(chat.lastMessageStatus)}</div>
-                    </div>
-                    <div class="chat-time">${formatTime(chat.lastMessageTime)}</div>
-                `;
-                
-                chatItem.addEventListener('click', () => {
-                    const otherParticipantId = chat.participants.find(id => id !== currentUser.uid);
-                    openChatWithUser(otherParticipantId, chatName);
-                    
-                    // Marquer comme active
-                    document.querySelectorAll('.chat-item').forEach(item => {
-                        item.classList.remove('active');
-                    });
-                    chatItem.classList.add('active');
-                });
-                
-                chatList.appendChild(chatItem);
-            });
-        }
-
-        function loadChatMessages(chatId) {
-            // Vider le conteneur de messages
-            messagesContainer.innerHTML = '';
-            
-            // Charger les messages depuis Firestore
-            db.collection('chats').doc(chatId).collection('messages')
-                .orderBy('timestamp', 'asc')
-                .get()
-                .then(snapshot => {
-                    if (snapshot.empty) {
-                        const infoMessage = document.createElement('div');
-                        infoMessage.className = 'empty-state';
-                        infoMessage.innerHTML = `
-                            <i class="fas fa-comment-slash"></i>
-                            <p>Aucun message dans cette conversation</p>
-                            <p>Soyez le premier à envoyer un message !</p>
-                        `;
-                        messagesContainer.appendChild(infoMessage);
-                        return;
-                    }
-                    
-                    snapshot.forEach(doc => {
-                        const message = doc.data();
-                        displayMessage(message);
-                    });
-                    
-                    // Faire défiler vers le bas
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                })
-                .catch(error => {
-                    console.error('Erreur lors du chargement des messages:', error);
-                });
-        }
-
-        function displayMessage(message) {
-            const messageElement = document.createElement('div');
-            messageElement.className = `message ${message.senderId === currentUser.uid ? 'message-sent' : 'message-received'}`;
-            
-            let messageContent = '';
-            if (message.mediaUrl) {
-                if (message.mediaType === 'image') {
-                    messageContent = `<img src="${message.mediaUrl}" alt="Image" class="message-media">`;
-                } else if (message.mediaType === 'video') {
-                    messageContent = `<video src="${message.mediaUrl}" controls class="message-media"></video>`;
-                } else if (message.mediaType === 'audio') {
-                    messageContent = `<audio src="${message.mediaUrl}" controls class="message-audio"></audio>`;
-                }
-            } else {
-                messageContent = `<div class="message-text">${message.text}</div>`;
-            }
-            
-            messageElement.innerHTML = `
-                ${messageContent}
-                <div class="message-time">${formatTime(message.timestamp)}</div>
-            `;
-            
-            messagesContainer.appendChild(messageElement);
         }
 
         function getMessageStatusText(status) {
