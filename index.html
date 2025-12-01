@@ -180,6 +180,148 @@
             border-radius: 20px;
             padding: 16px;
         }
+
+        /* Nouveaux styles pour l'enregistrement vocal style WhatsApp */
+        .voice-recorder-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .voice-recorder-popup {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .voice-recording-animation {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80px;
+            margin-bottom: 20px;
+        }
+
+        .voice-recording-wave {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            height: 40px;
+        }
+
+        .voice-recording-bar {
+            width: 4px;
+            background: #3b82f6;
+            border-radius: 2px;
+            animation: voiceRecordingWave 1.2s ease-in-out infinite;
+        }
+
+        @keyframes voiceRecordingWave {
+            0%, 100% { height: 10px; }
+            50% { height: 30px; }
+        }
+
+        .voice-recording-time {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #1f2937;
+        }
+
+        .voice-recording-hint {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .voice-recording-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .voice-recording-cancel {
+            color: #ef4444;
+            font-weight: bold;
+        }
+
+        .voice-recording-send {
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-recording-lock-indicator {
+            background: #10b981;
+            color: white;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+
+        /* Styles pour le menu contextuel amélioré */
+        .message-context-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .message-context-menu {
+            background: white;
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 200px;
+            max-width: 80%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .message-context-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+
+        .message-context-item:hover {
+            background: #f3f4f6;
+        }
+
+        .message-context-item.destructive {
+            color: #ef4444;
+        }
+
+        .message-highlighted {
+            background-color: rgba(59, 130, 246, 0.1) !important;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
     </style>
     
     <script>
@@ -819,6 +961,73 @@
     <input type="file" id="file-input" class="hidden" accept="image/*,video/*">
     <input type="file" id="group-photo-input" class="hidden" accept="image/*">
 
+    <!-- Nouvelle interface d'enregistrement vocal style WhatsApp -->
+    <div id="voice-recorder-overlay" class="voice-recorder-overlay hidden">
+        <div class="voice-recorder-popup">
+            <div class="voice-recording-animation">
+                <div class="voice-recording-wave">
+                    <div class="voice-recording-bar" style="animation-delay: 0s"></div>
+                    <div class="voice-recording-bar" style="animation-delay: 0.1s"></div>
+                    <div class="voice-recording-bar" style="animation-delay: 0.2s"></div>
+                    <div class="voice-recording-bar" style="animation-delay: 0.3s"></div>
+                    <div class="voice-recording-bar" style="animation-delay: 0.4s"></div>
+                    <div class="voice-recording-bar" style="animation-delay: 0.5s"></div>
+                    <div class="voice-recording-bar" style="animation-delay: 0.6s"></div>
+                    <div class="voice-recording-bar" style="animation-delay: 0.7s"></div>
+                </div>
+            </div>
+            
+            <div id="voice-recording-time" class="voice-recording-time">0:00</div>
+            
+            <div id="voice-recording-lock-indicator" class="voice-recording-lock-indicator hidden">
+                <i class="fas fa-lock mr-2"></i>Enregistrement verrouillé
+            </div>
+            
+            <div id="voice-recording-hint" class="voice-recording-hint">
+                Glissez vers le haut pour verrouiller • Relâchez pour envoyer
+            </div>
+            
+            <div class="voice-recording-actions">
+                <button id="voice-recording-cancel" class="voice-recording-cancel">
+                    <i class="fas fa-trash mr-2"></i>Annuler
+                </button>
+                <button id="voice-recording-send" class="voice-recording-send">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nouveau menu contextuel style WhatsApp -->
+    <div id="message-context-overlay" class="message-context-overlay hidden">
+        <div class="message-context-menu">
+            <div class="message-context-item" data-action="reply">
+                <i class="fas fa-reply"></i>
+                <span>Répondre</span>
+            </div>
+            <div class="message-context-item" data-action="copy">
+                <i class="fas fa-copy"></i>
+                <span>Copier</span>
+            </div>
+            <div class="message-context-item" data-action="forward">
+                <i class="fas fa-share"></i>
+                <span>Transférer</span>
+            </div>
+            <div class="message-context-item" data-action="download">
+                <i class="fas fa-download"></i>
+                <span>Télécharger</span>
+            </div>
+            <div class="message-context-item" data-action="edit">
+                <i class="fas fa-edit"></i>
+                <span>Modifier</span>
+            </div>
+            <div class="message-context-item destructive" data-action="delete">
+                <i class="fas fa-trash"></i>
+                <span>Supprimer</span>
+            </div>
+        </div>
+    </div>
+
     <script>
         // =====================================================
         // CONFIGURATION ET INITIALISATION
@@ -873,11 +1082,15 @@
         let unsubscribeUsersListener = null;
         let unsubscribeGroupsListener = null;
         let unsubscribeCallsListener = null;
+        let unsubscribeGroupMessagesListener = null;
 
         // Variables pour l'enregistrement vocal
         let audioPreview = null;
         let isPlayingPreview = false;
         let voiceRecordingStartY = 0;
+        let voiceRecordingTimer = null;
+        let voiceRecordingSeconds = 0;
+        let voiceRecordingStartTime = null;
 
         // Éléments DOM
         const elements = {
@@ -939,6 +1152,14 @@
             playPreview: document.getElementById('play-preview'),
             cancelPreview: document.getElementById('cancel-preview'),
             confirmSendVoice: document.getElementById('confirm-send-voice'),
+            
+            // Nouvel enregistrement vocal
+            voiceRecorderOverlay: document.getElementById('voice-recorder-overlay'),
+            voiceRecordingTime: document.getElementById('voice-recording-time'),
+            voiceRecordingLockIndicator: document.getElementById('voice-recording-lock-indicator'),
+            voiceRecordingHint: document.getElementById('voice-recording-hint'),
+            voiceRecordingCancel: document.getElementById('voice-recording-cancel'),
+            voiceRecordingSend: document.getElementById('voice-recording-send'),
             
             // Réponse aux messages
             replyIndicator: document.getElementById('reply-indicator'),
@@ -1010,6 +1231,9 @@
             searchMessagesBtn: document.getElementById('search-messages-btn'),
             searchResults: document.getElementById('search-results'),
             
+            // Nouveau menu contextuel
+            messageContextOverlay: document.getElementById('message-context-overlay'),
+            
             // Notifications
             toastContainer: document.getElementById('toast-container')
         };
@@ -1067,12 +1291,13 @@
             elements.fileInput.addEventListener('change', handleFileUpload);
             
             // Enregistrement vocal amélioré
-            elements.micBtn.addEventListener('mousedown', startVoiceRecording);
-            elements.micBtn.addEventListener('touchstart', handleVoiceRecordingStart);
-            document.addEventListener('mouseup', stopVoiceRecording);
-            document.addEventListener('touchend', stopVoiceRecording);
-            document.addEventListener('mousemove', handleVoiceRecordingMove);
-            document.addEventListener('touchmove', handleVoiceRecordingMove);
+            elements.micBtn.addEventListener('click', startVoiceRecordingNew);
+            elements.voiceRecordingCancel.addEventListener('click', cancelVoiceRecordingNew);
+            elements.voiceRecordingSend.addEventListener('click', sendVoiceRecordingNew);
+            
+            // Gestion des gestes pour l'enregistrement vocal
+            document.addEventListener('touchmove', handleVoiceRecordingMoveNew, { passive: false });
+            document.addEventListener('touchend', handleVoiceRecordingEndNew);
             
             elements.sendBtn.addEventListener('click', sendMessage);
             elements.sendRecording.addEventListener('click', sendVoiceRecording);
@@ -1129,6 +1354,20 @@
             elements.searchMessages.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') performMessageSearch();
             });
+            
+            // Nouveau menu contextuel
+            elements.messageContextOverlay.addEventListener('click', (e) => {
+                if (e.target === elements.messageContextOverlay) {
+                    hideMessageContextMenu();
+                }
+            });
+            
+            document.querySelectorAll('.message-context-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const action = e.currentTarget.dataset.action;
+                    handleMessageActionNew(action);
+                });
+            });
         }
 
         // =====================================================
@@ -1160,6 +1399,11 @@
             if (unsubscribeChatListener) {
                 unsubscribeChatListener();
                 unsubscribeChatListener = null;
+            }
+            
+            if (unsubscribeGroupMessagesListener) {
+                unsubscribeGroupMessagesListener();
+                unsubscribeGroupMessagesListener = null;
             }
         }
 
@@ -1639,7 +1883,7 @@
         function displayMessage(message, messageId) {
             const isCurrentUser = message.senderId === currentUser.uid;
             const messageElement = document.createElement('div');
-            messageElement.className = `flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`;
+            messageElement.className = `flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`;
             messageElement.id = `message-${messageId}`;
             
             let messageContent = '';
@@ -1746,7 +1990,23 @@
             // Ajouter le menu contextuel avec restriction temporelle
             messageElement.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                showMessageContextMenu(e, message, messageId, isCurrentUser);
+                showMessageContextMenuNew(e, message, messageId, isCurrentUser);
+            });
+            
+            // Ajouter l'appui long sur mobile
+            let longPressTimer;
+            messageElement.addEventListener('touchstart', (e) => {
+                longPressTimer = setTimeout(() => {
+                    showMessageContextMenuNew(e, message, messageId, isCurrentUser);
+                }, 500);
+            });
+            
+            messageElement.addEventListener('touchend', () => {
+                clearTimeout(longPressTimer);
+            });
+            
+            messageElement.addEventListener('touchmove', () => {
+                clearTimeout(longPressTimer);
             });
             
             elements.messagesContainer.appendChild(messageElement);
@@ -1848,36 +2108,10 @@
         }
 
         // =====================================================
-        // ENREGISTREMENT VOCAL AVEC AMÉLIORATIONS
+        // ENREGISTREMENT VOCAL AVEC AMÉLIORATIONS - NOUVELLE VERSION
         // =====================================================
 
-        function handleVoiceRecordingStart(e) {
-            if (e.type === 'touchstart') {
-                voiceRecordingStartY = e.touches[0].clientY;
-            }
-            startVoiceRecording(e);
-        }
-
-        function handleVoiceRecordingMove(e) {
-            if (!isRecording) return;
-            
-            let currentY;
-            if (e.type === 'mousemove') {
-                currentY = e.clientY;
-            } else if (e.type === 'touchmove') {
-                currentY = e.touches[0].clientY;
-            }
-            
-            // Vérifier le geste de glissement vers le haut
-            if (voiceRecordingStartY - currentY > 50 && !isVoiceLocked) {
-                isVoiceLocked = true;
-                elements.voiceRecorder.classList.add('voice-recorder-locked');
-                showToast('Microphone verrouillé - Mode mains libres', 'info');
-            }
-        }
-
-        async function startVoiceRecording(e) {
-            e.preventDefault();
+        async function startVoiceRecordingNew() {
             if (!currentChat) {
                 showToast('Veuillez d\'abord sélectionner une conversation', 'error');
                 return;
@@ -1885,7 +2119,7 @@
             
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
                 audioChunks = [];
                 
                 mediaRecorder.ondataavailable = (event) => {
@@ -1895,29 +2129,172 @@
                 mediaRecorder.start();
                 isRecording = true;
                 
+                // Initialiser le compteur de temps
+                voiceRecordingSeconds = 0;
+                voiceRecordingStartTime = Date.now();
+                updateVoiceRecordingTime();
+                
+                // Démarrer le timer
+                voiceRecordingTimer = setInterval(updateVoiceRecordingTime, 1000);
+                
                 // Afficher l'interface d'enregistrement
-                elements.voiceRecorder.classList.remove('hidden');
-                elements.messageInput.classList.add('hidden');
+                elements.voiceRecorderOverlay.classList.remove('hidden');
+                isVoiceLocked = false;
+                elements.voiceRecordingLockIndicator.classList.add('hidden');
+                elements.voiceRecordingHint.textContent = 'Glissez vers le haut pour verrouiller • Relâchez pour envoyer';
                 
             } catch (error) {
                 showToast('Erreur d\'accès au microphone: ' + error.message, 'error');
             }
         }
 
-        function stopVoiceRecording() {
+        function updateVoiceRecordingTime() {
+            voiceRecordingSeconds = Math.floor((Date.now() - voiceRecordingStartTime) / 1000);
+            const minutes = Math.floor(voiceRecordingSeconds / 60);
+            const seconds = voiceRecordingSeconds % 60;
+            elements.voiceRecordingTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function handleVoiceRecordingMoveNew(e) {
+            if (!isRecording) return;
+            
+            e.preventDefault();
+            let currentY;
+            if (e.type === 'touchmove') {
+                currentY = e.touches[0].clientY;
+            }
+            
+            // Vérifier le geste de glissement vers le haut
+            if (voiceRecordingStartY - currentY > 100 && !isVoiceLocked) {
+                isVoiceLocked = true;
+                elements.voiceRecordingLockIndicator.classList.remove('hidden');
+                elements.voiceRecordingHint.textContent = 'Relâchez pour envoyer';
+            }
+        }
+
+        function handleVoiceRecordingEndNew(e) {
+            if (!isRecording) return;
+            
+            if (isVoiceLocked) {
+                // Si verrouillé, on ne fait rien, l'utilisateur doit appuyer sur le bouton d'envoi
+                return;
+            }
+            
+            // Sinon, arrêter l'enregistrement et envoyer
+            stopVoiceRecordingNew();
+            sendVoiceRecordingNew();
+        }
+
+        function stopVoiceRecordingNew() {
             if (!isRecording || !mediaRecorder) return;
             
             mediaRecorder.stop();
             mediaRecorder.stream.getTracks().forEach(track => track.stop());
             isRecording = false;
             
-            // Si l'enregistrement est verrouillé, afficher la prévisualisation
-            if (isVoiceLocked) {
-                showVoicePreview();
-            } else if (audioChunks.length > 0) {
-                // Sinon, envoyer automatiquement
-                sendVoiceRecording();
-            } else {
+            // Arrêter le timer
+            clearInterval(voiceRecordingTimer);
+            
+            // Masquer l'interface d'enregistrement
+            elements.voiceRecorderOverlay.classList.add('hidden');
+        }
+
+        function cancelVoiceRecordingNew() {
+            stopVoiceRecordingNew();
+            resetVoiceRecorder();
+            showToast('Enregistrement annulé', 'info');
+        }
+
+        async function sendVoiceRecordingNew() {
+            if (audioChunks.length === 0) return;
+            
+            try {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                
+                // CORRECTION : Utiliser 'auto' au lieu de 'video' pour Cloudinary
+                const result = await uploadToCloudinary(audioBlob, 'auto');
+                
+                const message = {
+                    senderId: currentUser.uid,
+                    mediaUrl: result.secure_url,
+                    mediaType: 'audio',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'sent'
+                };
+                
+                await db.collection('chats').doc(currentChat.id).collection('messages').add(message);
+                
+                // Mettre à jour le dernier message
+                await db.collection('chats').doc(currentChat.id).update({
+                    lastMessage: '🎤 Message audio',
+                    lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showToast('Message audio envoyé', 'success');
+                
+            } catch (error) {
+                showToast('Erreur lors de l\'envoi de l\'audio: ' + error.message, 'error');
+            } finally {
+                resetVoiceRecorder();
+            }
+        }
+
+        function resetVoiceRecorder() {
+            elements.voiceRecorderOverlay.classList.add('hidden');
+            elements.voiceRecorder.classList.add('hidden');
+            elements.voicePreview.classList.add('hidden');
+            isRecording = false;
+            isVoiceLocked = false;
+            isPlayingPreview = false;
+            audioChunks = [];
+            mediaRecorder = null;
+            voiceRecordingSeconds = 0;
+            
+            if (voiceRecordingTimer) {
+                clearInterval(voiceRecordingTimer);
+                voiceRecordingTimer = null;
+            }
+            
+            if (audioPreview) {
+                URL.revokeObjectURL(audioPreview);
+                audioPreview = null;
+            }
+        }
+
+        // =====================================================
+        // ANCIENNES FONCTIONS D'ENREGISTREMENT VOCAL (POUR COMPATIBILITÉ)
+        // =====================================================
+
+        async function sendVoiceRecording() {
+            if (audioChunks.length === 0) return;
+            
+            try {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                
+                // CORRECTION : Utiliser 'auto' au lieu de 'video' pour Cloudinary
+                const result = await uploadToCloudinary(audioBlob, 'auto');
+                
+                const message = {
+                    senderId: currentUser.uid,
+                    mediaUrl: result.secure_url,
+                    mediaType: 'audio',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'sent'
+                };
+                
+                await db.collection('chats').doc(currentChat.id).collection('messages').add(message);
+                
+                // Mettre à jour le dernier message
+                await db.collection('chats').doc(currentChat.id).update({
+                    lastMessage: '🎤 Message audio',
+                    lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showToast('Message audio envoyé', 'success');
+                
+            } catch (error) {
+                showToast('Erreur lors de l\'envoi de l\'audio: ' + error.message, 'error');
+            } finally {
                 resetVoiceRecorder();
             }
         }
@@ -1927,7 +2304,7 @@
             elements.voicePreview.classList.remove('hidden');
             
             // Créer l'audio pour la prévisualisation
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
             audioPreview = URL.createObjectURL(audioBlob);
         }
 
@@ -1963,8 +2340,10 @@
             if (audioChunks.length === 0) return;
             
             try {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                const result = await uploadToCloudinary(audioBlob, 'video');
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                
+                // CORRECTION : Utiliser 'auto' au lieu de 'video' pour Cloudinary
+                const result = await uploadToCloudinary(audioBlob, 'auto');
                 
                 const message = {
                     senderId: currentUser.uid,
@@ -1990,54 +2369,6 @@
                 elements.voicePreview.classList.add('hidden');
                 elements.messageInput.classList.remove('hidden');
                 resetVoiceRecorder();
-            }
-        }
-
-        async function sendVoiceRecording() {
-            if (audioChunks.length === 0) return;
-            
-            try {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                const result = await uploadToCloudinary(audioBlob, 'video');
-                
-                const message = {
-                    senderId: currentUser.uid,
-                    mediaUrl: result.secure_url,
-                    mediaType: 'audio',
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'sent'
-                };
-                
-                await db.collection('chats').doc(currentChat.id).collection('messages').add(message);
-                
-                // Mettre à jour le dernier message
-                await db.collection('chats').doc(currentChat.id).update({
-                    lastMessage: '🎤 Message audio',
-                    lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                showToast('Message audio envoyé', 'success');
-                
-            } catch (error) {
-                showToast('Erreur lors de l\'envoi de l\'audio: ' + error.message, 'error');
-            } finally {
-                resetVoiceRecorder();
-            }
-        }
-
-        function resetVoiceRecorder() {
-            elements.voiceRecorder.classList.add('hidden');
-            elements.voicePreview.classList.add('hidden');
-            elements.messageInput.classList.remove('hidden');
-            isRecording = false;
-            isVoiceLocked = false;
-            isPlayingPreview = false;
-            audioChunks = [];
-            mediaRecorder = null;
-            
-            if (audioPreview) {
-                URL.revokeObjectURL(audioPreview);
-                audioPreview = null;
             }
         }
 
@@ -2283,70 +2614,94 @@
         }
 
         // =====================================================
-        // FONCTIONNALITÉS AVANCÉES DES MESSAGES
+        // FONCTIONNALITÉS AVANCÉES DES MESSAGES - NOUVEAU MENU CONTEXTUEL
         // =====================================================
 
-        function showMessageContextMenu(event, message, messageId, isCurrentUser) {
-            // Vérifier si le message peut être modifié (moins de 10 minutes)
-            const canEdit = isCurrentUser && canMessageBeEdited(message.timestamp);
+        let currentContextMessage = null;
+        let currentContextMessageId = null;
+        let currentContextIsCurrentUser = null;
+
+        function showMessageContextMenuNew(event, message, messageId, isCurrentUser) {
+            currentContextMessage = message;
+            currentContextMessageId = messageId;
+            currentContextIsCurrentUser = isCurrentUser;
             
-            // Créer le menu contextuel
-            const menu = document.createElement('div');
-            menu.className = 'context-menu';
-            menu.style.left = event.clientX + 'px';
-            menu.style.top = event.clientY + 'px';
-            
-            let menuItems = `
-                <div class="context-menu-item" data-action="copy">
-                    <i class="fas fa-copy mr-2"></i>Copier
-                </div>
-                <div class="context-menu-item" data-action="reply">
-                    <i class="fas fa-reply mr-2"></i>Répondre
-                </div>
-            `;
-            
-            // Ajouter l'option de téléchargement pour les médias
-            if (message.mediaUrl) {
-                menuItems += `
-                    <div class="context-menu-item" data-action="download">
-                        <i class="fas fa-download mr-2"></i>Télécharger
-                    </div>
-                `;
+            // Mettre en surbrillance le message
+            const messageElement = document.getElementById(`message-${messageId}`);
+            if (messageElement) {
+                messageElement.classList.add('message-highlighted');
             }
             
-            if (isCurrentUser) {
-                if (canEdit) {
-                    menuItems += `
-                        <div class="context-menu-item" data-action="edit">
-                            <i class="fas fa-edit mr-2"></i>Modifier
-                        </div>
-                    `;
+            // Afficher le menu contextuel
+            elements.messageContextOverlay.classList.remove('hidden');
+            
+            // Masquer les options conditionnelles
+            const menuItems = elements.messageContextOverlay.querySelectorAll('.message-context-item');
+            
+            menuItems.forEach(item => {
+                const action = item.dataset.action;
+                
+                // Masquer les options selon le contexte
+                if (action === 'edit' && (!isCurrentUser || !canMessageBeEdited(message.timestamp))) {
+                    item.style.display = 'none';
+                } else if (action === 'download' && !message.mediaUrl) {
+                    item.style.display = 'none';
+                } else if (action === 'copy' && !message.text) {
+                    item.style.display = 'none';
+                } else {
+                    item.style.display = 'flex';
                 }
-                // La suppression est toujours disponible pour l'auteur
-                menuItems += `
-                    <div class="context-menu-item text-red-500" data-action="delete">
-                        <i class="fas fa-trash mr-2"></i>Supprimer
-                    </div>
-                `;
+            });
+        }
+
+        function hideMessageContextMenu() {
+            elements.messageContextOverlay.classList.add('hidden');
+            
+            // Retirer la surbrillance du message
+            if (currentContextMessageId) {
+                const messageElement = document.getElementById(`message-${currentContextMessageId}`);
+                if (messageElement) {
+                    messageElement.classList.remove('message-highlighted');
+                }
             }
             
-            menu.innerHTML = menuItems;
-            document.body.appendChild(menu);
+            currentContextMessage = null;
+            currentContextMessageId = null;
+            currentContextIsCurrentUser = null;
+        }
+
+        function handleMessageActionNew(action) {
+            if (!currentContextMessage || !currentContextMessageId) return;
             
-            // Gérer les clics sur les éléments du menu
-            menu.querySelectorAll('.context-menu-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const action = item.dataset.action;
-                    handleMessageAction(action, message, messageId);
-                    menu.remove();
-                });
-            });
+            switch (action) {
+                case 'copy':
+                    navigator.clipboard.writeText(currentContextMessage.text)
+                        .then(() => showToast('Message copié', 'success'))
+                        .catch(() => showToast('Erreur lors de la copie', 'error'));
+                    break;
+                    
+                case 'reply':
+                    setReplyToMessage(currentContextMessage, currentContextMessageId);
+                    break;
+                    
+                case 'forward':
+                    showToast('Fonction de transfert à venir', 'info');
+                    break;
+                    
+                case 'download':
+                    downloadMedia(currentContextMessage.mediaUrl, currentContextMessage.mediaType);
+                    break;
+                    
+                case 'edit':
+                    editMessage(currentContextMessage, currentContextMessageId);
+                    break;
+                    
+                case 'delete':
+                    deleteMessage(currentContextMessageId);
+                    break;
+            }
             
-            // Fermer le menu en cliquant ailleurs
-            document.addEventListener('click', function closeMenu() {
-                menu.remove();
-                document.removeEventListener('click', closeMenu);
-            });
+            hideMessageContextMenu();
         }
 
         function canMessageBeEdited(timestamp) {
@@ -2357,32 +2712,6 @@
             const tenMinutes = 10 * 60 * 1000; // 10 minutes en millisecondes
             
             return (currentTime - messageTime) < tenMinutes;
-        }
-
-        function handleMessageAction(action, message, messageId) {
-            switch (action) {
-                case 'copy':
-                    navigator.clipboard.writeText(message.text)
-                        .then(() => showToast('Message copié', 'success'))
-                        .catch(() => showToast('Erreur lors de la copie', 'error'));
-                    break;
-                    
-                case 'reply':
-                    setReplyToMessage(message, messageId);
-                    break;
-                    
-                case 'download':
-                    downloadMedia(message.mediaUrl, message.mediaType);
-                    break;
-                    
-                case 'edit':
-                    editMessage(message, messageId);
-                    break;
-                    
-                case 'delete':
-                    deleteMessage(messageId);
-                    break;
-            }
         }
 
         function setReplyToMessage(message, messageId) {
@@ -2497,6 +2826,150 @@
                 
             } catch (error) {
                 showToast('Erreur lors de l\'ouverture du groupe: ' + error.message, 'error');
+            }
+        }
+
+        // PHASE 1 - CORRECTION : Implémentation de loadGroupMessages
+        function loadGroupMessages(groupId) {
+            if (!groupId) return;
+            
+            // Vider le conteneur avant de charger de nouveaux messages
+            const messagesContainer = elements.groupChatView.querySelector('#messages-container');
+            if (messagesContainer) {
+                messagesContainer.innerHTML = '';
+            }
+            
+            // Nettoyer l'ancien listener s'il existe
+            if (unsubscribeGroupMessagesListener) {
+                unsubscribeGroupMessagesListener();
+            }
+            
+            // Mettre en place un écouteur Firestore sur la collection messages du groupe
+            unsubscribeGroupMessagesListener = db.collection('groups').doc(groupId).collection('messages')
+                .orderBy('timestamp', 'asc')
+                .onSnapshot(snapshot => {
+                    // Vider le conteneur seulement au premier chargement
+                    if (messagesContainer) {
+                        // Ne pas vider à chaque changement, mais gérer les modifications
+                        snapshot.docChanges().forEach(change => {
+                            if (change.type === 'added') {
+                                // Vérifier si le message n'est pas déjà affiché
+                                const messageElement = document.getElementById(`group-message-${change.doc.id}`);
+                                if (!messageElement) {
+                                    displayGroupMessage(change.doc.data(), change.doc.id);
+                                }
+                            } else if (change.type === 'modified') {
+                                // Mettre à jour le message existant
+                                updateGroupMessage(change.doc.data(), change.doc.id);
+                            } else if (change.type === 'removed') {
+                                // Supprimer le message
+                                removeGroupMessage(change.doc.id);
+                            }
+                        });
+                        
+                        scrollToBottomInGroup();
+                    }
+                }, error => {
+                    console.error('Erreur lors de l\'écoute des messages du groupe:', error);
+                });
+        }
+
+        function displayGroupMessage(message, messageId) {
+            const isCurrentUser = message.senderId === currentUser.uid;
+            const messagesContainer = elements.groupChatView.querySelector('#messages-container');
+            
+            if (!messagesContainer) return;
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = `flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`;
+            messageElement.id = `group-message-${messageId}`;
+            
+            let messageContent = '';
+            if (message.mediaUrl) {
+                if (message.mediaType === 'image') {
+                    messageContent = `
+                        <div class="relative">
+                            <img src="${message.mediaUrl}" alt="Image" class="max-w-xs rounded-2xl cursor-pointer" onclick="openImageModal('${message.mediaUrl}')">
+                            <button class="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all duration-200" onclick="downloadMedia('${message.mediaUrl}', 'image')">
+                                <i class="fas fa-download text-sm"></i>
+                            </button>
+                        </div>
+                    `;
+                } else if (message.mediaType === 'video') {
+                    messageContent = `
+                        <div class="relative">
+                            <video src="${message.mediaUrl}" controls class="max-w-xs rounded-2xl"></video>
+                            <button class="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all duration-200" onclick="downloadMedia('${message.mediaUrl}', 'video')">
+                                <i class="fas fa-download text-sm"></i>
+                            </button>
+                        </div>
+                    `;
+                } else if (message.mediaType === 'audio') {
+                    messageContent = `
+                        <div class="bg-blue-500 text-white p-4 rounded-2xl relative">
+                            <audio src="${message.mediaUrl}" controls class="w-48"></audio>
+                            <button class="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all duration-200" onclick="downloadMedia('${message.mediaUrl}', 'audio')">
+                                <i class="fas fa-download text-sm"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+            } else {
+                messageContent = `
+                    <div class="bg-white dark:bg-gray-700 text-gray-800 dark:text-white px-4 py-2 rounded-2xl max-w-xs break-words">
+                        ${message.text || ''}
+                    </div>
+                `;
+            }
+            
+            // Afficher le nom de l'expéditeur pour les messages des autres
+            let senderName = '';
+            if (!isCurrentUser) {
+                // Récupérer le nom de l'utilisateur
+                db.collection('users').doc(message.senderId).get().then(doc => {
+                    if (doc.exists) {
+                        const user = doc.data();
+                        const nameElement = messageElement.querySelector('.sender-name');
+                        if (nameElement) {
+                            nameElement.textContent = user.username;
+                        }
+                    }
+                });
+                senderName = `<p class="sender-name text-xs text-gray-500 dark:text-gray-400 mb-1">Chargement...</p>`;
+            }
+            
+            messageElement.innerHTML = `
+                <div class="max-w-xs">
+                    ${!isCurrentUser ? senderName : ''}
+                    ${messageContent}
+                    <div class="flex items-center justify-end mt-1">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${formatTime(message.timestamp)}</p>
+                    </div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageElement);
+        }
+
+        function updateGroupMessage(message, messageId) {
+            const messageElement = document.getElementById(`group-message-${messageId}`);
+            if (messageElement) {
+                messageElement.remove();
+                displayGroupMessage(message, messageId);
+            }
+        }
+
+        function removeGroupMessage(messageId) {
+            const messageElement = document.getElementById(`group-message-${messageId}`);
+            if (messageElement) {
+                messageElement.remove();
+            }
+        }
+
+        function scrollToBottomInGroup() {
+            const messagesContainer = elements.groupChatView.querySelector('#messages-container');
+            if (messagesContainer) {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
         }
 
@@ -3174,11 +3647,6 @@
             } catch (error) {
                 console.error('Erreur lors du chargement des groupes:', error);
             }
-        }
-
-        // Fonction pour charger les messages de groupe
-        async function loadGroupMessages(groupId) {
-            // Implémentation similaire à loadChatMessages mais pour les groupes
         }
 
         // Initialisation finale
