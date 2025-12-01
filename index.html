@@ -322,6 +322,78 @@
             background-color: rgba(59, 130, 246, 0.1) !important;
             border: 1px solid rgba(59, 130, 246, 0.3);
         }
+
+        /* Barre des utilisateurs en ligne */
+        .online-users-bar {
+            display: flex;
+            overflow-x: auto;
+            padding: 8px;
+            gap: 12px;
+            margin-bottom: 16px;
+            scrollbar-width: none;
+        }
+
+        .online-users-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .online-user-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 60px;
+            cursor: pointer;
+        }
+
+        .online-user-avatar {
+            position: relative;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+
+        .online-user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .online-status-indicator {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            background-color: #10b981;
+            border: 2px solid white;
+            border-radius: 50%;
+        }
+
+        /* Statut de lecture */
+        .message-status {
+            font-size: 12px;
+            margin-left: 4px;
+        }
+
+        .status-sent { color: #9ca3af; }
+        .status-delivered { color: #9ca3af; }
+        .status-read { color: #3b82f6; }
+
+        /* Contrôle de volume */
+        .volume-slider-container {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 51;
+        }
     </style>
     
     <script>
@@ -476,6 +548,9 @@
             <main class="p-4">
                 <!-- Vue Messages -->
                 <div id="messages-view" class="view">
+                    <!-- Barre des utilisateurs en ligne -->
+                    <div id="online-users-bar" class="online-users-bar mb-4"></div>
+                    
                     <div class="mb-4">
                         <div class="relative">
                             <input type="text" id="search-users" 
@@ -848,15 +923,27 @@
             <p id="call-status" class="text-blue-200">Appel en cours...</p>
         </div>
         
+        <!-- Contrôle de volume -->
+        <div id="volume-slider-container" class="volume-slider-container hidden">
+            <i class="fas fa-volume-up text-white"></i>
+            <input type="range" id="call-volume" min="0" max="100" value="100" class="w-32">
+        </div>
+        
         <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-6">
             <button id="call-mute" class="w-14 h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-white hover:bg-opacity-30 transition-all duration-200">
                 <i class="fas fa-microphone text-xl"></i>
+            </button>
+            <button id="call-speaker" class="w-14 h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-white hover:bg-opacity-30 transition-all duration-200">
+                <i class="fas fa-volume-up text-xl"></i>
             </button>
             <button id="call-end" class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-all duration-200 transform hover:scale-105">
                 <i class="fas fa-phone-slash text-xl"></i>
             </button>
             <button id="call-camera" class="w-14 h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-white hover:bg-opacity-30 transition-all duration-200">
                 <i class="fas fa-video text-xl"></i>
+            </button>
+            <button id="call-volume-toggle" class="w-14 h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-white hover:bg-opacity-30 transition-all duration-200">
+                <i class="fas fa-volume-high text-xl"></i>
             </button>
         </div>
     </div>
@@ -1050,7 +1137,9 @@
         // Configuration WebRTC
         const ICE_SERVERS = {
             iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' }
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
             ]
         };
 
@@ -1074,16 +1163,11 @@
         let replyingToMessage = null;
         let currentCallDoc = null;
         let currentMediaFile = null;
-        let expandedMessages = new Set(); // Pour suivre les messages développés
+        let expandedMessages = new Set();
+        let callTimeout = null;
+        let callStatusListener = null;
+        let processedChatIds = new Set(); // Pour éviter les doublons
         
-        // Variables pour gérer les listeners Firestore
-        let unsubscribeChatListener = null;
-        let unsubscribeMessagesListener = null;
-        let unsubscribeUsersListener = null;
-        let unsubscribeGroupsListener = null;
-        let unsubscribeCallsListener = null;
-        let unsubscribeGroupMessagesListener = null;
-
         // Variables pour l'enregistrement vocal
         let audioPreview = null;
         let isPlayingPreview = false;
@@ -1091,6 +1175,19 @@
         let voiceRecordingTimer = null;
         let voiceRecordingSeconds = 0;
         let voiceRecordingStartTime = null;
+        let audioContext = null;
+        let analyser = null;
+        let dataArray = null;
+        let canvasContext = null;
+
+        // Variables pour gérer les listeners Firestore
+        let unsubscribeChatListener = null;
+        let unsubscribeMessagesListener = null;
+        let unsubscribeUsersListener = null;
+        let unsubscribeGroupsListener = null;
+        let unsubscribeCallsListener = null;
+        let unsubscribeGroupMessagesListener = null;
+        let unsubscribeOnlineUsersListener = null;
 
         // Éléments DOM
         const elements = {
@@ -1145,6 +1242,9 @@
             sendBtn: document.getElementById('send-btn'),
             fileInput: document.getElementById('file-input'),
             
+            // Utilisateurs en ligne
+            onlineUsersBar: document.getElementById('online-users-bar'),
+            
             // Enregistrement vocal
             voiceRecorder: document.getElementById('voice-recorder'),
             sendRecording: document.getElementById('send-recording'),
@@ -1178,6 +1278,10 @@
             callMute: document.getElementById('call-mute'),
             callEnd: document.getElementById('call-end'),
             callCamera: document.getElementById('call-camera'),
+            callSpeaker: document.getElementById('call-speaker'),
+            callVolumeToggle: document.getElementById('call-volume-toggle'),
+            callVolume: document.getElementById('call-volume'),
+            volumeSliderContainer: document.getElementById('volume-slider-container'),
             incomingCall: document.getElementById('incoming-call'),
             incomingCallName: document.getElementById('incoming-call-name'),
             incomingCallType: document.getElementById('incoming-call-type'),
@@ -1239,16 +1343,16 @@
         };
 
         // =====================================================
-        // INITIALISATION DE L'APPLICATION
+        // PHASE 0: CORRECTION DU BUG CRITIQUE DE DÉMARRAGE
         // =====================================================
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Afficher l'écran de démarrage pendant 4 secondes
+            // Réduire le temps d'affichage de l'écran de démarrage
             setTimeout(() => {
                 elements.splashScreen.classList.add('hidden');
                 elements.appContainer.classList.remove('hidden');
                 initializeApp();
-            }, 4000);
+            }, 1500);
         });
 
         function initializeApp() {
@@ -1256,6 +1360,821 @@
             checkAuthState();
             initializeTheme();
         }
+
+        // =====================================================
+        // PHASE 1: STABILITÉ ET FIABILITÉ DES FONCTIONNALITÉS CORE
+        // =====================================================
+
+        function checkAuthState() {
+            auth.onAuthStateChanged(user => {
+                // Masquer l'écran de chargement systématiquement
+                elements.splashScreen.classList.add('hidden');
+                elements.appContainer.classList.remove('hidden');
+                
+                if (user) {
+                    currentUser = user;
+                    showMainApp();
+                    setupUserData();
+                    setupRealtimeListeners();
+                } else {
+                    showAuthView();
+                }
+            }, error => {
+                // En cas d'erreur, masquer l'écran de chargement et montrer l'authentification
+                elements.splashScreen.classList.add('hidden');
+                elements.appContainer.classList.remove('hidden');
+                showAuthView();
+                showToast('Erreur d\'initialisation: ' + error.message, 'error');
+            });
+        }
+
+        // 1. Correction de l'affichage des doublons dans la liste de chats
+        async function loadChatsList() {
+            if (!currentUser) return;
+            
+            try {
+                const snapshot = await db.collection('chats')
+                    .where('participants', 'array-contains', currentUser.uid)
+                    .orderBy('lastMessageTime', 'desc')
+                    .limit(50)
+                    .get();
+                
+                elements.chatsList.innerHTML = '';
+                processedChatIds.clear();
+                
+                if (snapshot.empty) {
+                    elements.chatsList.innerHTML = `
+                        <div class="text-center py-8">
+                            <i class="fas fa-comments text-4xl text-gray-300 mb-4"></i>
+                            <p class="text-gray-500 dark:text-gray-400">Aucune conversation</p>
+                            <p class="text-sm text-gray-400 dark:text-gray-500">Commencez une nouvelle conversation en recherchant un utilisateur</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const chatPromises = [];
+                
+                snapshot.forEach(doc => {
+                    const chat = doc.data();
+                    const otherUserId = chat.participants.find(id => id !== currentUser.uid);
+                    
+                    // Créer un ID canonique pour éviter les doublons
+                    const sortedIds = [currentUser.uid, otherUserId].sort();
+                    const chatId = sortedIds.join('_');
+                    
+                    if (processedChatIds.has(chatId)) {
+                        return; // Ignorer les doublons
+                    }
+                    
+                    processedChatIds.add(chatId);
+                    
+                    chatPromises.push(
+                        db.collection('users').doc(otherUserId).get().then(userDoc => {
+                            if (userDoc.exists) {
+                                const user = userDoc.data();
+                                return createChatListItem(chat, user, chatId);
+                            }
+                            return null;
+                        })
+                    );
+                });
+                
+                const chatItems = await Promise.all(chatPromises);
+                chatItems.filter(item => item !== null).forEach(item => {
+                    elements.chatsList.appendChild(item);
+                });
+                
+            } catch (error) {
+                console.error('Erreur lors du chargement des conversations:', error);
+                showToast('Erreur de chargement des conversations', 'error');
+            }
+        }
+
+        // 2. Correction critique de l'acceptation d'appel
+        async function acceptIncomingCall() {
+            elements.incomingCall.classList.add('hidden');
+            
+            try {
+                // CORRECTION: Utiliser .get() pour obtenir les données
+                const callSnapshot = await currentCallDoc.get();
+                const callData = callSnapshot.data();
+                
+                if (!callData) {
+                    showToast('Appel non trouvé', 'error');
+                    return;
+                }
+                
+                // Mettre à jour le statut pour indiquer la sonnerie
+                await currentCallDoc.update({
+                    status: 'ringing'
+                });
+                
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: true,
+                    video: callData.type === 'video'
+                });
+                
+                peerConnection = new RTCPeerConnection(ICE_SERVERS);
+                
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                
+                peerConnection.ontrack = (event) => {
+                    remoteStream = event.streams[0];
+                    elements.remoteVideo.srcObject = remoteStream;
+                    
+                    // Configurer le contrôle de volume
+                    if (elements.remoteVideo.setSinkId) {
+                        setupAudioOutput();
+                    }
+                };
+                
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.offer));
+                
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                
+                await currentCallDoc.update({
+                    answer: answer,
+                    status: 'in-progress'
+                });
+                
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        currentCallDoc.collection('calleeCandidates').add(event.candidate.toJSON());
+                    }
+                };
+                
+                currentCallDoc.collection('callerCandidates').onSnapshot(snapshot => {
+                    snapshot.docChanges().forEach(change => {
+                        if (change.type === 'added') {
+                            const candidate = new RTCIceCandidate(change.doc.data());
+                            peerConnection.addIceCandidate(candidate);
+                        }
+                    });
+                });
+                
+                showCallInterface(callData.type);
+                
+            } catch (error) {
+                showToast('Erreur lors de l\'acceptation de l\'appel: ' + error.message, 'error');
+                if (currentCallDoc) {
+                    await currentCallDoc.update({ status: 'failed' });
+                }
+            }
+        }
+
+        // =====================================================
+        // PHASE 2: AMÉLIORATION DE L'EXPÉRIENCE D'APPEL (WEBRTC)
+        // =====================================================
+
+        // 1. Gestion du statut d'appel avancé et délai d'expiration
+        async function startCall(type) {
+            if (!currentChat) {
+                showToast('Veuillez d\'abord sélectionner une conversation', 'error');
+                return;
+            }
+            
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: true,
+                    video: type === 'video'
+                });
+                
+                peerConnection = new RTCPeerConnection(ICE_SERVERS);
+                
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                
+                peerConnection.ontrack = (event) => {
+                    remoteStream = event.streams[0];
+                    elements.remoteVideo.srcObject = remoteStream;
+                    
+                    // Configurer le contrôle de volume
+                    if (elements.remoteVideo.setSinkId) {
+                        setupAudioOutput();
+                    }
+                };
+                
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                currentCallDoc = db.collection('calls').doc();
+                await currentCallDoc.set({
+                    offer: offer,
+                    from: currentUser.uid,
+                    to: currentChat.otherUserId,
+                    type: type,
+                    status: 'calling',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    participants: [currentUser.uid, currentChat.otherUserId]
+                });
+                
+                // Écouter les changements de statut
+                callStatusListener = currentCallDoc.onSnapshot(async (doc) => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        
+                        switch (data.status) {
+                            case 'ringing':
+                                elements.callStatus.textContent = 'Sonnerie...';
+                                break;
+                            case 'declined':
+                                showToast('Appel refusé', 'error');
+                                endCall();
+                                break;
+                            case 'missed':
+                                showToast('Appel manqué', 'error');
+                                endCall();
+                                break;
+                            case 'in-progress':
+                                elements.callStatus.textContent = 'En cours...';
+                                break;
+                            case 'ended':
+                                showToast('Appel terminé', 'info');
+                                endCall();
+                                break;
+                        }
+                    }
+                });
+                
+                // Délai d'expiration de 60 secondes
+                callTimeout = setTimeout(async () => {
+                    if (peerConnection && peerConnection.connectionState !== 'connected') {
+                        await currentCallDoc.update({ status: 'missed' });
+                        showToast('L\'appel a expiré', 'error');
+                        endCall();
+                    }
+                }, 60000);
+                
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        currentCallDoc.collection('callerCandidates').add(event.candidate.toJSON());
+                    }
+                };
+                
+                currentCallDoc.collection('calleeCandidates').onSnapshot(snapshot => {
+                    snapshot.docChanges().forEach(change => {
+                        if (change.type === 'added') {
+                            const candidate = new RTCIceCandidate(change.doc.data());
+                            peerConnection.addIceCandidate(candidate);
+                        }
+                    });
+                });
+                
+                currentCallDoc.onSnapshot(async (doc) => {
+                    const data = doc.data();
+                    if (data.answer && peerConnection.signalingState !== 'stable') {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    }
+                });
+                
+                showCallInterface(type);
+                
+            } catch (error) {
+                showToast('Erreur lors du démarrage de l\'appel: ' + error.message, 'error');
+            }
+        }
+
+        // 2. Contrôle du volume et du périphérique audio
+        function setupAudioOutput() {
+            if (!elements.remoteVideo.setSinkId) {
+                console.warn('setSinkId n\'est pas supporté');
+                return;
+            }
+            
+            // Détecter les périphériques audio disponibles
+            navigator.mediaDevices.enumerateDevices()
+                .then(devices => {
+                    const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
+                    
+                    if (audioOutputs.length > 1) {
+                        elements.callSpeaker.addEventListener('click', toggleSpeaker);
+                        elements.callVolumeToggle.addEventListener('click', toggleVolumeControl);
+                        elements.callVolume.addEventListener('input', adjustVolume);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur d\'énumération des périphériques:', error);
+                });
+        }
+
+        let isSpeakerActive = false;
+        async function toggleSpeaker() {
+            if (!elements.remoteVideo.setSinkId) return;
+            
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
+                
+                if (audioOutputs.length > 1) {
+                    // Basculer entre le haut-parleur et l'écouteur
+                    const speakerDevice = audioOutputs.find(device => 
+                        device.label.toLowerCase().includes('speaker') || 
+                        device.label.toLowerCase().includes('haut-parleur')
+                    );
+                    
+                    const defaultDevice = audioOutputs[0];
+                    
+                    if (isSpeakerActive && speakerDevice) {
+                        await elements.remoteVideo.setSinkId(speakerDevice.deviceId);
+                        elements.callSpeaker.innerHTML = '<i class="fas fa-volume-up text-xl"></i>';
+                    } else {
+                        await elements.remoteVideo.setSinkId(defaultDevice.deviceId);
+                        elements.callSpeaker.innerHTML = '<i class="fas fa-headphones text-xl"></i>';
+                    }
+                    
+                    isSpeakerActive = !isSpeakerActive;
+                    showToast(isSpeakerActive ? 'Haut-parleur activé' : 'Écouteur activé', 'info');
+                }
+            } catch (error) {
+                console.error('Erreur de basculement audio:', error);
+            }
+        }
+
+        function toggleVolumeControl() {
+            elements.volumeSliderContainer.classList.toggle('hidden');
+        }
+
+        function adjustVolume() {
+            const volume = elements.callVolume.value / 100;
+            if (elements.remoteVideo) {
+                elements.remoteVideo.volume = volume;
+            }
+        }
+
+        // 3. Historique des appels
+        async function loadCallsHistory() {
+            if (!currentUser) return;
+            
+            try {
+                const snapshot = await db.collection('calls')
+                    .where('participants', 'array-contains', currentUser.uid)
+                    .orderBy('timestamp', 'desc')
+                    .limit(50)
+                    .get();
+                
+                elements.callsList.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    elements.callsList.innerHTML = `
+                        <div class="text-center py-8">
+                            <i class="fas fa-phone text-4xl text-gray-300 mb-4"></i>
+                            <p class="text-gray-500 dark:text-gray-400">Aucun appel récent</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const callPromises = [];
+                
+                snapshot.forEach(doc => {
+                    const call = doc.data();
+                    const otherUserId = call.from === currentUser.uid ? call.to : call.from;
+                    
+                    callPromises.push(
+                        db.collection('users').doc(otherUserId).get().then(userDoc => {
+                            if (userDoc.exists) {
+                                const user = userDoc.data();
+                                return createCallHistoryItem(call, user, otherUserId);
+                            }
+                            return null;
+                        })
+                    );
+                });
+                
+                const callItems = await Promise.all(callPromises);
+                callItems.filter(item => item !== null).forEach(item => {
+                    elements.callsList.appendChild(item);
+                });
+                
+            } catch (error) {
+                console.error('Erreur lors du chargement de l\'historique:', error);
+                showToast('Erreur de chargement de l\'historique', 'error');
+            }
+        }
+
+        function createCallHistoryItem(call, user, otherUserId) {
+            const div = document.createElement('div');
+            div.className = 'glass rounded-2xl p-4 flex items-center space-x-3';
+            
+            const callTypeIcon = call.type === 'video' ? 'fa-video' : 'fa-phone';
+            const callDirection = call.from === currentUser.uid ? 'sortant' : 'entrant';
+            const callStatusColor = getCallStatusColor(call.status);
+            const callStatusText = getCallStatusText(call.status);
+            
+            div.innerHTML = `
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center ${callDirection === 'sortant' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'}">
+                    <i class="fas ${callTypeIcon}"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-semibold text-gray-800 dark:text-white">${user.username}</h3>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm ${callDirection === 'sortant' ? 'text-blue-600' : 'text-green-600'}">
+                            <i class="fas ${callDirection === 'sortant' ? 'fa-arrow-up' : 'fa-arrow-down'}"></i>
+                            ${callDirection === 'sortant' ? 'Sortant' : 'Entrant'}
+                        </span>
+                        <span class="text-sm text-gray-600 dark:text-gray-400">•</span>
+                        <span class="text-sm ${callStatusColor}">${callStatusText}</span>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">${formatTime(call.timestamp)}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">${call.type === 'video' ? 'Vidéo' : 'Audio'}</p>
+                </div>
+            `;
+            
+            div.addEventListener('click', () => {
+                openChatWithUser(otherUserId, user.username);
+            });
+            
+            return div;
+        }
+
+        function getCallStatusColor(status) {
+            switch (status) {
+                case 'ended': return 'text-green-600';
+                case 'missed': return 'text-red-600';
+                case 'declined': return 'text-orange-600';
+                case 'failed': return 'text-red-600';
+                default: return 'text-gray-600';
+            }
+        }
+
+        function getCallStatusText(status) {
+            switch (status) {
+                case 'ended': return 'Terminé';
+                case 'missed': return 'Manqué';
+                case 'declined': return 'Refusé';
+                case 'failed': return 'Échoué';
+                case 'in-progress': return 'En cours';
+                default: return 'Appel';
+            }
+        }
+
+        // =====================================================
+        // PHASE 3: AMÉLIORATIONS UX DE LA MESSAGERIE
+        // =====================================================
+
+        // 1. Menu contextuel avancé (Appui long)
+        function showMessageContextMenuNew(event, message, messageId, isCurrentUser) {
+            currentContextMessage = message;
+            currentContextMessageId = messageId;
+            currentContextIsCurrentUser = isCurrentUser;
+            
+            // Mettre en surbrillance le message avec flou d'arrière-plan
+            const messageElement = document.getElementById(`message-${messageId}`);
+            if (messageElement) {
+                messageElement.classList.add('message-highlighted');
+                document.querySelector('#chat-view > .glass').style.backdropFilter = 'blur(5px)';
+            }
+            
+            // Afficher le menu contextuel
+            elements.messageContextOverlay.classList.remove('hidden');
+            
+            // Conditionnalité des actions
+            const menuItems = elements.messageContextOverlay.querySelectorAll('.message-context-item');
+            
+            menuItems.forEach(item => {
+                const action = item.dataset.action;
+                
+                switch (action) {
+                    case 'copy':
+                    case 'edit':
+                        // Afficher seulement pour les messages texte
+                        item.style.display = message.text && !message.mediaUrl ? 'flex' : 'none';
+                        break;
+                        
+                    case 'download':
+                        // Afficher seulement pour les messages média
+                        item.style.display = message.mediaUrl ? 'flex' : 'none';
+                        break;
+                        
+                    case 'delete':
+                        // Gestion des permissions
+                        if (currentGroup) {
+                            // Pour les groupes: admin ou propriétaire du message
+                            const isAdmin = currentGroup.admins && currentGroup.admins.includes(currentUser.uid);
+                            item.style.display = (isCurrentUser || isAdmin) ? 'flex' : 'none';
+                        } else {
+                            // Pour les chats privés: propriétaire du message seulement
+                            item.style.display = isCurrentUser ? 'flex' : 'none';
+                        }
+                        break;
+                        
+                    default:
+                        item.style.display = 'flex';
+                }
+            });
+        }
+
+        function hideMessageContextMenu() {
+            elements.messageContextOverlay.classList.add('hidden');
+            
+            // Retirer la surbrillance
+            if (currentContextMessageId) {
+                const messageElement = document.getElementById(`message-${currentContextMessageId}`);
+                if (messageElement) {
+                    messageElement.classList.remove('message-highlighted');
+                    document.querySelector('#chat-view > .glass').style.backdropFilter = '';
+                }
+            }
+            
+            currentContextMessage = null;
+            currentContextMessageId = null;
+            currentContextIsCurrentUser = null;
+        }
+
+        // 2. Statut de lecture (Ticks de WhatsApp)
+        async function sendMessage() {
+            const text = elements.messageInput.value.trim();
+            if (!text || !currentChat) return;
+            
+            try {
+                const messageData = {
+                    senderId: currentUser.uid,
+                    text: text,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'sent',
+                    readBy: [currentUser.uid] // L'expéditeur a déjà "lu" le message
+                };
+                
+                if (replyingToMessage) {
+                    messageData.replyTo = {
+                        messageId: replyingToMessage.id,
+                        senderId: replyingToMessage.senderId,
+                        text: replyingToMessage.text
+                    };
+                }
+                
+                const messageRef = await db.collection('chats').doc(currentChat.id).collection('messages').add(messageData);
+                
+                // Mettre à jour le dernier message
+                await db.collection('chats').doc(currentChat.id).update({
+                    lastMessage: text,
+                    lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastMessageStatus: 'sent'
+                });
+                
+                // Réinitialiser l'interface
+                elements.messageInput.value = '';
+                elements.messageInput.style.height = 'auto';
+                cancelReply();
+                handleMessageInput();
+                
+                // Mettre à jour le statut en temps réel
+                setTimeout(async () => {
+                    await messageRef.update({ status: 'delivered' });
+                }, 1000);
+                
+            } catch (error) {
+                showToast('Erreur lors de l\'envoi du message: ' + error.message, 'error');
+            }
+        }
+
+        async function markMessageAsRead(messageId) {
+            if (!currentChat || !currentUser) return;
+            
+            try {
+                const messageRef = db.collection('chats').doc(currentChat.id).collection('messages').doc(messageId);
+                const messageDoc = await messageRef.get();
+                
+                if (messageDoc.exists) {
+                    const message = messageDoc.data();
+                    const readBy = message.readBy || [];
+                    
+                    if (!readBy.includes(currentUser.uid)) {
+                        readBy.push(currentUser.uid);
+                        await messageRef.update({
+                            readBy: readBy,
+                            status: 'read'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur de marquage comme lu:', error);
+            }
+        }
+
+        function displayMessage(message, messageId) {
+            const isCurrentUser = message.senderId === currentUser.uid;
+            const messageElement = document.createElement('div');
+            messageElement.className = `flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`;
+            messageElement.id = `message-${messageId}`;
+            
+            // Vérifier si le message a été lu
+            const readBy = message.readBy || [];
+            const isRead = readBy.includes(currentChat.otherUserId) || 
+                          (currentGroup && readBy.length > 1);
+            
+            let statusIndicator = '';
+            if (isCurrentUser) {
+                let statusClass = 'status-sent';
+                let statusIcon = '✓';
+                
+                if (message.status === 'delivered' || isRead) {
+                    statusIcon = '✓✓';
+                    statusClass = 'status-delivered';
+                }
+                
+                if (isRead) {
+                    statusClass = 'status-read';
+                }
+                
+                statusIndicator = `<span class="message-status ${statusClass}">${statusIcon}</span>`;
+            }
+            
+            // ... reste du code d'affichage du message ...
+            
+            // Observer la visibilité du message pour le marquer comme lu
+            if (!isCurrentUser && currentChat) {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            markMessageAsRead(messageId);
+                            observer.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.5 });
+                
+                observer.observe(messageElement);
+            }
+            
+            elements.messagesContainer.appendChild(messageElement);
+        }
+
+        // 3. Liste des utilisateurs en ligne
+        async function loadOnlineUsersBar() {
+            if (!currentUser) return;
+            
+            try {
+                const snapshot = await db.collection('users')
+                    .where('isOnline', '==', true)
+                    .limit(20)
+                    .get();
+                
+                elements.onlineUsersBar.innerHTML = '';
+                
+                snapshot.forEach(doc => {
+                    const user = doc.data();
+                    
+                    if (user.uid === currentUser.uid) return;
+                    
+                    const userItem = createOnlineUserItem(user);
+                    elements.onlineUsersBar.appendChild(userItem);
+                });
+                
+            } catch (error) {
+                console.error('Erreur de chargement des utilisateurs en ligne:', error);
+            }
+        }
+
+        function createOnlineUserItem(user) {
+            const div = document.createElement('div');
+            div.className = 'online-user-item';
+            
+            div.innerHTML = `
+                <div class="online-user-avatar">
+                    <img src="${user.photoURL || 'https://via.placeholder.com/50'}" alt="${user.username}">
+                    <div class="online-status-indicator"></div>
+                </div>
+                <span class="text-xs text-gray-600 dark:text-gray-400 mt-1 truncate max-w-[60px]">${user.username}</span>
+            `;
+            
+            div.addEventListener('click', () => {
+                openChatWithUser(user.uid, user.username);
+            });
+            
+            return div;
+        }
+
+        // =====================================================
+        // PHASE 4: AMÉLIORATION DE L'ENREGISTREMENT VOCAL
+        // =====================================================
+
+        async function startVoiceRecordingNew() {
+            if (!currentChat) {
+                showToast('Veuillez d\'abord sélectionner une conversation', 'error');
+                return;
+            }
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Initialiser l'audio context pour la visualisation
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+                
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+                
+                // Initialiser le canvas pour la visualisation
+                const canvas = document.createElement('canvas');
+                canvas.width = 300;
+                canvas.height = 80;
+                canvasContext = canvas.getContext('2d');
+                elements.voiceRecordingAnimation.innerHTML = '';
+                elements.voiceRecordingAnimation.appendChild(canvas);
+                
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.start();
+                isRecording = true;
+                
+                // Initialiser le timer
+                voiceRecordingSeconds = 0;
+                voiceRecordingStartTime = Date.now();
+                updateVoiceRecordingTime();
+                voiceRecordingTimer = setInterval(updateVoiceRecordingTime, 1000);
+                
+                // Démarrer l'animation de visualisation
+                drawAudioWaveform();
+                
+                // Afficher l'interface
+                elements.voiceRecorderOverlay.classList.remove('hidden');
+                isVoiceLocked = false;
+                elements.voiceRecordingLockIndicator.classList.add('hidden');
+                
+                // Gestion des gestes
+                document.addEventListener('touchmove', handleVoiceRecordingMove, { passive: false });
+                document.addEventListener('touchend', handleVoiceRecordingEnd);
+                
+            } catch (error) {
+                showToast('Erreur d\'accès au microphone: ' + error.message, 'error');
+            }
+        }
+
+        function drawAudioWaveform() {
+            if (!canvasContext || !analyser || !isRecording) return;
+            
+            requestAnimationFrame(drawAudioWaveform);
+            
+            analyser.getByteFrequencyData(dataArray);
+            
+            canvasContext.clearRect(0, 0, 300, 80);
+            canvasContext.fillStyle = '#3b82f6';
+            
+            const barWidth = (300 / dataArray.length) * 2.5;
+            let barHeight;
+            let x = 0;
+            
+            for (let i = 0; i < dataArray.length; i++) {
+                barHeight = dataArray[i] / 2;
+                
+                canvasContext.fillRect(x, 80 - barHeight, barWidth, barHeight);
+                
+                x += barWidth + 1;
+            }
+        }
+
+        function handleVoiceRecordingMove(e) {
+            if (!isRecording) return;
+            
+            e.preventDefault();
+            const currentY = e.touches[0].clientY;
+            
+            if (voiceRecordingStartY - currentY > 100 && !isVoiceLocked) {
+                isVoiceLocked = true;
+                elements.voiceRecordingLockIndicator.classList.remove('hidden');
+                elements.voiceRecordingHint.textContent = 'Relâchez pour envoyer';
+            }
+        }
+
+        function handleVoiceRecordingEnd(e) {
+            if (!isRecording) return;
+            
+            if (isVoiceLocked) {
+                return;
+            }
+            
+            stopVoiceRecording();
+            showVoicePreview();
+        }
+
+        function showVoicePreview() {
+            elements.voiceRecorderOverlay.classList.add('hidden');
+            elements.voicePreview.classList.remove('hidden');
+            
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            audioPreview = URL.createObjectURL(audioBlob);
+        }
+
+        // =====================================================
+        // FONCTIONS UTILITAIRES ET INITIALISATION
+        // =====================================================
 
         function setupEventListeners() {
             // Authentification
@@ -1290,23 +2209,19 @@
             elements.attachmentBtn.addEventListener('click', () => elements.fileInput.click());
             elements.fileInput.addEventListener('change', handleFileUpload);
             
-            // Enregistrement vocal amélioré
+            // Enregistrement vocal
             elements.micBtn.addEventListener('click', startVoiceRecordingNew);
             elements.voiceRecordingCancel.addEventListener('click', cancelVoiceRecordingNew);
             elements.voiceRecordingSend.addEventListener('click', sendVoiceRecordingNew);
-            
-            // Gestion des gestes pour l'enregistrement vocal
-            document.addEventListener('touchmove', handleVoiceRecordingMoveNew, { passive: false });
-            document.addEventListener('touchend', handleVoiceRecordingEndNew);
-            
-            elements.sendBtn.addEventListener('click', sendMessage);
-            elements.sendRecording.addEventListener('click', sendVoiceRecording);
-            elements.cancelReply.addEventListener('click', cancelReply);
             
             // Prévisualisation audio
             elements.playPreview.addEventListener('click', toggleAudioPreview);
             elements.cancelPreview.addEventListener('click', cancelVoicePreview);
             elements.confirmSendVoice.addEventListener('click', confirmSendVoiceRecording);
+            
+            elements.sendBtn.addEventListener('click', sendMessage);
+            elements.sendRecording.addEventListener('click', sendVoiceRecording);
+            elements.cancelReply.addEventListener('click', cancelReply);
             
             // Appels
             elements.audioCallBtn.addEventListener('click', () => startCall('audio'));
@@ -1316,7 +2231,7 @@
             elements.declineCall.addEventListener('click', declineIncomingCall);
             elements.acceptCall.addEventListener('click', acceptIncomingCall);
             
-            // Éditeur de média avancé
+            // Éditeur de média
             elements.drawTool.addEventListener('click', activateDrawTool);
             elements.textTool.addEventListener('click', activateTextTool);
             elements.cropTool.addEventListener('click', activateCropTool);
@@ -1328,7 +2243,6 @@
             elements.sendMedia.addEventListener('click', sendEditedMedia);
             elements.downloadMedia.addEventListener('click', downloadEditedMedia);
             
-            // Filtres d'image
             document.querySelectorAll('.filter-option').forEach(button => {
                 button.addEventListener('click', (e) => {
                     applyFilter(e.target.dataset.filter);
@@ -1355,7 +2269,7 @@
                 if (e.key === 'Enter') performMessageSearch();
             });
             
-            // Nouveau menu contextuel
+            // Menu contextuel
             elements.messageContextOverlay.addEventListener('click', (e) => {
                 if (e.target === elements.messageContextOverlay) {
                     hideMessageContextMenu();
@@ -1370,48 +2284,33 @@
             });
         }
 
-        // =====================================================
-        // CORRECTION DES BUGS DE DUPLICATION
-        // =====================================================
-
         function cleanupListeners() {
-            // Nettoyer tous les listeners Firestore
-            if (unsubscribeMessagesListener) {
-                unsubscribeMessagesListener();
-                unsubscribeMessagesListener = null;
-            }
+            const listeners = [
+                unsubscribeChatListener,
+                unsubscribeMessagesListener,
+                unsubscribeUsersListener,
+                unsubscribeGroupsListener,
+                unsubscribeCallsListener,
+                unsubscribeGroupMessagesListener,
+                unsubscribeOnlineUsersListener,
+                callStatusListener
+            ];
             
-            if (unsubscribeUsersListener) {
-                unsubscribeUsersListener();
-                unsubscribeUsersListener = null;
-            }
+            listeners.forEach(unsubscribe => {
+                if (unsubscribe) {
+                    unsubscribe();
+                }
+            });
             
-            if (unsubscribeGroupsListener) {
-                unsubscribeGroupsListener();
-                unsubscribeGroupsListener = null;
-            }
-            
-            if (unsubscribeCallsListener) {
-                unsubscribeCallsListener();
-                unsubscribeCallsListener = null;
-            }
-            
-            if (unsubscribeChatListener) {
-                unsubscribeChatListener();
-                unsubscribeChatListener = null;
-            }
-            
-            if (unsubscribeGroupMessagesListener) {
-                unsubscribeGroupMessagesListener();
-                unsubscribeGroupMessagesListener = null;
+            if (callTimeout) {
+                clearTimeout(callTimeout);
+                callTimeout = null;
             }
         }
 
         function switchView(viewId) {
-            // Nettoyer les listeners avant de changer de vue
             cleanupListeners();
             
-            // Mettre à jour les onglets de navigation
             elements.navTabs.forEach(tab => {
                 if (tab.dataset.view === viewId) {
                     tab.classList.remove('text-gray-600', 'dark:text-gray-400');
@@ -1422,15 +2321,12 @@
                 }
             });
             
-            // Masquer toutes les vues
             document.querySelectorAll('.view').forEach(view => {
                 view.classList.add('hidden');
             });
             
-            // Afficher la vue sélectionnée
             document.getElementById(viewId).classList.remove('hidden');
             
-            // Mettre à jour le titre
             const titles = {
                 'messages-view': 'Messages',
                 'calls-view': 'Appels',
@@ -1439,9 +2335,10 @@
             };
             elements.viewTitle.textContent = titles[viewId] || 'PrivCon';
             
-            // Charger les données spécifiques à la vue
             if (viewId === 'messages-view') {
                 loadChatsList();
+                loadOnlineUsersBar();
+                setupOnlineUsersListener();
             } else if (viewId === 'calls-view') {
                 loadCallsHistory();
             } else if (viewId === 'groups-view') {
@@ -1449,21 +2346,12 @@
             }
         }
 
-        // =====================================================
-        // GESTION DE L'AUTHENTIFICATION
-        // =====================================================
-
-        function checkAuthState() {
-            auth.onAuthStateChanged(user => {
-                if (user) {
-                    currentUser = user;
-                    showMainApp();
-                    setupUserData();
-                    setupRealtimeListeners();
-                } else {
-                    showAuthView();
-                }
-            });
+        function setupOnlineUsersListener() {
+            unsubscribeOnlineUsersListener = db.collection('users')
+                .where('isOnline', '==', true)
+                .onSnapshot(snapshot => {
+                    loadOnlineUsersBar();
+                });
         }
 
         function showAuthView() {
@@ -1579,19 +2467,13 @@
                     peerConnection.close();
                 }
                 
-                // Nettoyer tous les listeners
                 cleanupListeners();
-                
                 await auth.signOut();
                 showToast('Déconnexion réussie', 'success');
             } catch (error) {
                 showToast('Erreur de déconnexion: ' + error.message, 'error');
             }
         }
-
-        // =====================================================
-        // GESTION DU PROFIL UTILISATEUR
-        // =====================================================
 
         function setupUserData() {
             if (!currentUser) return;
@@ -1600,7 +2482,6 @@
                 if (doc.exists) {
                     const userData = doc.data();
                     
-                    // Mettre à jour l'interface
                     elements.userName.textContent = userData.username;
                     elements.profileName.textContent = userData.username;
                     elements.profileEmail.textContent = userData.email;
@@ -1608,7 +2489,6 @@
                     elements.profileBio.value = userData.bio || '';
                     elements.profileLocation.value = userData.location || '';
                     
-                    // Mettre à jour les avatars
                     const avatarUrl = userData.photoURL || 'https://via.placeholder.com/150';
                     elements.userAvatar.src = avatarUrl;
                     elements.profileAvatar.src = avatarUrl;
@@ -1692,10 +2572,6 @@
             }
         }
 
-        // =====================================================
-        // MESSAGERIE ET CHATS - CORRECTIONS ET AMÉLIORATIONS
-        // =====================================================
-
         async function performUserSearch() {
             const query = elements.searchUsers.value.trim();
             if (!query) {
@@ -1707,9 +2583,9 @@
                 const snapshot = await db.collection('users')
                     .where('username', '>=', query)
                     .where('username', '<=', query + '\uf8ff')
+                    .limit(20)
                     .get();
                 
-                // Vider le conteneur avant d'ajouter de nouveaux éléments
                 elements.chatsList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -1722,7 +2598,6 @@
                     return;
                 }
                 
-                // Utiliser un Set pour éviter les doublons
                 const displayedUsers = new Set();
                 
                 snapshot.forEach(doc => {
@@ -1788,7 +2663,6 @@
             elements.chatView.classList.remove('translate-x-full');
             elements.chatUserName.textContent = currentChat.name;
             
-            // Charger les informations de l'utilisateur pour l'avatar et le statut
             db.collection('users').doc(currentChat.otherUserId).get().then(doc => {
                 if (doc.exists) {
                     const user = doc.data();
@@ -1804,7 +2678,6 @@
             replyingToMessage = null;
             elements.replyIndicator.classList.add('hidden');
             
-            // Nettoyer le listener des messages
             if (unsubscribeMessagesListener) {
                 unsubscribeMessagesListener();
                 unsubscribeMessagesListener = null;
@@ -1814,11 +2687,11 @@
         function loadChatMessages() {
             if (!currentChat) return;
             
-            // Vider le conteneur avant de charger de nouveaux messages
             elements.messagesContainer.innerHTML = '';
             
             db.collection('chats').doc(currentChat.id).collection('messages')
                 .orderBy('timestamp', 'asc')
+                .limit(100)
                 .get()
                 .then(snapshot => {
                     if (snapshot.empty) {
@@ -1832,7 +2705,6 @@
                         return;
                     }
                     
-                    // Utiliser un Set pour éviter les doublons
                     const displayedMessages = new Set();
                     
                     snapshot.forEach(doc => {
@@ -1852,7 +2724,6 @@
         function setupChatListener() {
             if (!currentChat) return;
             
-            // Nettoyer l'ancien listener s'il existe
             if (unsubscribeMessagesListener) {
                 unsubscribeMessagesListener();
             }
@@ -1860,156 +2731,20 @@
             unsubscribeMessagesListener = db.collection('chats').doc(currentChat.id).collection('messages')
                 .orderBy('timestamp', 'asc')
                 .onSnapshot(snapshot => {
-                    // Ne pas vider le conteneur, mais mettre à jour les messages
                     snapshot.docChanges().forEach(change => {
                         if (change.type === 'added') {
-                            // Vérifier si le message n'est pas déjà affiché
                             const messageElement = document.getElementById(`message-${change.doc.id}`);
                             if (!messageElement) {
                                 displayMessage(change.doc.data(), change.doc.id);
                             }
                         } else if (change.type === 'modified') {
-                            // Mettre à jour le message existant
                             updateMessage(change.doc.data(), change.doc.id);
                         } else if (change.type === 'removed') {
-                            // Supprimer le message
                             removeMessage(change.doc.id);
                         }
                     });
                     scrollToBottom();
                 });
-        }
-
-        function displayMessage(message, messageId) {
-            const isCurrentUser = message.senderId === currentUser.uid;
-            const messageElement = document.createElement('div');
-            messageElement.className = `flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`;
-            messageElement.id = `message-${messageId}`;
-            
-            let messageContent = '';
-            if (message.mediaUrl) {
-                if (message.mediaType === 'image') {
-                    messageContent = `
-                        <div class="relative">
-                            <img src="${message.mediaUrl}" alt="Image" class="max-w-xs rounded-2xl cursor-pointer" onclick="openImageModal('${message.mediaUrl}')">
-                            <button class="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all duration-200" onclick="downloadMedia('${message.mediaUrl}', 'image')">
-                                <i class="fas fa-download text-sm"></i>
-                            </button>
-                        </div>
-                    `;
-                } else if (message.mediaType === 'video') {
-                    messageContent = `
-                        <div class="relative">
-                            <video src="${message.mediaUrl}" controls class="max-w-xs rounded-2xl"></video>
-                            <button class="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all duration-200" onclick="downloadMedia('${message.mediaUrl}', 'video')">
-                                <i class="fas fa-download text-sm"></i>
-                            </button>
-                        </div>
-                    `;
-                } else if (message.mediaType === 'audio') {
-                    messageContent = `
-                        <div class="bg-blue-500 text-white p-4 rounded-2xl relative">
-                            <audio src="${message.mediaUrl}" controls class="w-48"></audio>
-                            <button class="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all duration-200" onclick="downloadMedia('${message.mediaUrl}', 'audio')">
-                                <i class="fas fa-download text-sm"></i>
-                            </button>
-                        </div>
-                    `;
-                }
-            } else {
-                // Gestion des messages longs avec troncature
-                const isExpanded = expandedMessages.has(messageId);
-                const shouldTruncate = message.text && (message.text.length > 150 || message.text.split('\n').length > 4);
-                
-                let displayText = message.text || '';
-                let showMoreButton = '';
-                
-                if (shouldTruncate && !isExpanded) {
-                    displayText = message.text.substring(0, 150) + (message.text.length > 150 ? '...' : '');
-                    if (message.text.split('\n').length > 4) {
-                        displayText = message.text.split('\n').slice(0, 4).join('\n') + '...';
-                    }
-                    showMoreButton = `<button class="text-blue-500 text-xs mt-1" onclick="toggleMessageExpansion('${messageId}')">Voir plus</button>`;
-                } else if (shouldTruncate && isExpanded) {
-                    showMoreButton = `<button class="text-blue-500 text-xs mt-1" onclick="toggleMessageExpansion('${messageId}')">Voir moins</button>`;
-                }
-                
-                messageContent = `
-                    <div class="bg-white dark:bg-gray-700 text-gray-800 dark:text-white px-4 py-2 rounded-2xl max-w-xs break-words">
-                        <div class="${shouldTruncate && !isExpanded ? 'message-truncated' : ''}">${displayText}</div>
-                        ${showMoreButton}
-                    </div>
-                `;
-            }
-            
-            // Ajouter la réponse si elle existe
-            let replyContent = '';
-            if (message.replyTo) {
-                const isReplyFromCurrentUser = message.replyTo.senderId === currentUser.uid;
-                replyContent = `
-                    <div class="mb-1 p-2 bg-gray-100 dark:bg-gray-600 rounded-lg border-l-4 border-blue-500">
-                        <p class="text-xs font-medium text-gray-600 dark:text-gray-300">${isReplyFromCurrentUser ? 'Vous' : 'Expéditeur'}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${message.replyTo.text}</p>
-                    </div>
-                `;
-            }
-            
-            // Ajouter les indicateurs de statut de lecture
-            let statusIndicator = '';
-            if (isCurrentUser && message.status) {
-                let statusIcon = '';
-                let statusColor = 'text-gray-400';
-                
-                switch (message.status) {
-                    case 'sent':
-                        statusIcon = '✓';
-                        break;
-                    case 'delivered':
-                        statusIcon = '✓✓';
-                        break;
-                    case 'read':
-                        statusIcon = '✓✓';
-                        statusColor = 'text-blue-500';
-                        break;
-                }
-                
-                statusIndicator = `<span class="text-xs ${statusColor} ml-2">${statusIcon}</span>`;
-            }
-            
-            messageElement.innerHTML = `
-                <div class="max-w-xs">
-                    ${replyContent}
-                    ${messageContent}
-                    <div class="flex items-center justify-end mt-1">
-                        <p class="text-xs text-gray-500 dark:text-gray-400">${formatTime(message.timestamp)}</p>
-                        ${statusIndicator}
-                    </div>
-                </div>
-            `;
-            
-            // Ajouter le menu contextuel avec restriction temporelle
-            messageElement.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                showMessageContextMenuNew(e, message, messageId, isCurrentUser);
-            });
-            
-            // Ajouter l'appui long sur mobile
-            let longPressTimer;
-            messageElement.addEventListener('touchstart', (e) => {
-                longPressTimer = setTimeout(() => {
-                    showMessageContextMenuNew(e, message, messageId, isCurrentUser);
-                }, 500);
-            });
-            
-            messageElement.addEventListener('touchend', () => {
-                clearTimeout(longPressTimer);
-            });
-            
-            messageElement.addEventListener('touchmove', () => {
-                clearTimeout(longPressTimer);
-            });
-            
-            elements.messagesContainer.appendChild(messageElement);
         }
 
         function updateMessage(message, messageId) {
@@ -2027,35 +2762,11 @@
             }
         }
 
-        // Fonction pour basculer l'affichage des messages longs
-        function toggleMessageExpansion(messageId) {
-            if (expandedMessages.has(messageId)) {
-                expandedMessages.delete(messageId);
-            } else {
-                expandedMessages.add(messageId);
-            }
-            
-            // Recharger le message spécifique
-            if (currentChat) {
-                db.collection('chats').doc(currentChat.id).collection('messages').doc(messageId).get()
-                    .then(doc => {
-                        if (doc.exists) {
-                            const messageElement = document.getElementById(`message-${messageId}`);
-                            if (messageElement) {
-                                messageElement.remove();
-                                displayMessage(doc.data(), messageId);
-                            }
-                        }
-                    });
-            }
-        }
-
         function handleMessageInput() {
             const hasText = elements.messageInput.value.trim().length > 0;
             elements.micBtn.classList.toggle('hidden', hasText);
             elements.sendBtn.classList.toggle('hidden', !hasText);
             
-            // Ajuster la hauteur automatiquement
             elements.messageInput.style.height = 'auto';
             elements.messageInput.style.height = elements.messageInput.scrollHeight + 'px';
         }
@@ -2067,87 +2778,6 @@
             }
         }
 
-        async function sendMessage() {
-            const text = elements.messageInput.value.trim();
-            if (!text || !currentChat) return;
-            
-            try {
-                const message = {
-                    senderId: currentUser.uid,
-                    text: text,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'sent' // Statut initial
-                };
-                
-                // Ajouter la réponse si elle existe
-                if (replyingToMessage) {
-                    message.replyTo = {
-                        messageId: replyingToMessage.id,
-                        senderId: replyingToMessage.senderId,
-                        text: replyingToMessage.text
-                    };
-                }
-                
-                await db.collection('chats').doc(currentChat.id).collection('messages').add(message);
-                
-                // Mettre à jour le dernier message
-                await db.collection('chats').doc(currentChat.id).update({
-                    lastMessage: text,
-                    lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // Réinitialiser l'interface
-                elements.messageInput.value = '';
-                elements.messageInput.style.height = 'auto';
-                cancelReply();
-                handleMessageInput();
-                
-            } catch (error) {
-                showToast('Erreur lors de l\'envoi du message: ' + error.message, 'error');
-            }
-        }
-
-        // =====================================================
-        // ENREGISTREMENT VOCAL AVEC AMÉLIORATIONS - NOUVELLE VERSION
-        // =====================================================
-
-        async function startVoiceRecordingNew() {
-            if (!currentChat) {
-                showToast('Veuillez d\'abord sélectionner une conversation', 'error');
-                return;
-            }
-            
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-                audioChunks = [];
-                
-                mediaRecorder.ondataavailable = (event) => {
-                    audioChunks.push(event.data);
-                };
-                
-                mediaRecorder.start();
-                isRecording = true;
-                
-                // Initialiser le compteur de temps
-                voiceRecordingSeconds = 0;
-                voiceRecordingStartTime = Date.now();
-                updateVoiceRecordingTime();
-                
-                // Démarrer le timer
-                voiceRecordingTimer = setInterval(updateVoiceRecordingTime, 1000);
-                
-                // Afficher l'interface d'enregistrement
-                elements.voiceRecorderOverlay.classList.remove('hidden');
-                isVoiceLocked = false;
-                elements.voiceRecordingLockIndicator.classList.add('hidden');
-                elements.voiceRecordingHint.textContent = 'Glissez vers le haut pour verrouiller • Relâchez pour envoyer';
-                
-            } catch (error) {
-                showToast('Erreur d\'accès au microphone: ' + error.message, 'error');
-            }
-        }
-
         function updateVoiceRecordingTime() {
             voiceRecordingSeconds = Math.floor((Date.now() - voiceRecordingStartTime) / 1000);
             const minutes = Math.floor(voiceRecordingSeconds / 60);
@@ -2155,52 +2785,23 @@
             elements.voiceRecordingTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
 
-        function handleVoiceRecordingMoveNew(e) {
-            if (!isRecording) return;
-            
-            e.preventDefault();
-            let currentY;
-            if (e.type === 'touchmove') {
-                currentY = e.touches[0].clientY;
-            }
-            
-            // Vérifier le geste de glissement vers le haut
-            if (voiceRecordingStartY - currentY > 100 && !isVoiceLocked) {
-                isVoiceLocked = true;
-                elements.voiceRecordingLockIndicator.classList.remove('hidden');
-                elements.voiceRecordingHint.textContent = 'Relâchez pour envoyer';
-            }
-        }
-
-        function handleVoiceRecordingEndNew(e) {
-            if (!isRecording) return;
-            
-            if (isVoiceLocked) {
-                // Si verrouillé, on ne fait rien, l'utilisateur doit appuyer sur le bouton d'envoi
-                return;
-            }
-            
-            // Sinon, arrêter l'enregistrement et envoyer
-            stopVoiceRecordingNew();
-            sendVoiceRecordingNew();
-        }
-
-        function stopVoiceRecordingNew() {
+        function stopVoiceRecording() {
             if (!isRecording || !mediaRecorder) return;
             
             mediaRecorder.stop();
             mediaRecorder.stream.getTracks().forEach(track => track.stop());
             isRecording = false;
             
-            // Arrêter le timer
             clearInterval(voiceRecordingTimer);
             
-            // Masquer l'interface d'enregistrement
-            elements.voiceRecorderOverlay.classList.add('hidden');
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
         }
 
         function cancelVoiceRecordingNew() {
-            stopVoiceRecordingNew();
+            stopVoiceRecording();
             resetVoiceRecorder();
             showToast('Enregistrement annulé', 'info');
         }
@@ -2210,8 +2811,6 @@
             
             try {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                
-                // CORRECTION : Utiliser 'auto' au lieu de 'video' pour Cloudinary
                 const result = await uploadToCloudinary(audioBlob, 'auto');
                 
                 const message = {
@@ -2219,12 +2818,12 @@
                     mediaUrl: result.secure_url,
                     mediaType: 'audio',
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'sent'
+                    status: 'sent',
+                    readBy: [currentUser.uid]
                 };
                 
                 await db.collection('chats').doc(currentChat.id).collection('messages').add(message);
                 
-                // Mettre à jour le dernier message
                 await db.collection('chats').doc(currentChat.id).update({
                     lastMessage: '🎤 Message audio',
                     lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
@@ -2259,19 +2858,17 @@
                 URL.revokeObjectURL(audioPreview);
                 audioPreview = null;
             }
+            
+            // Nettoyer les écouteurs de gestes
+            document.removeEventListener('touchmove', handleVoiceRecordingMove);
+            document.removeEventListener('touchend', handleVoiceRecordingEnd);
         }
-
-        // =====================================================
-        // ANCIENNES FONCTIONS D'ENREGISTREMENT VOCAL (POUR COMPATIBILITÉ)
-        // =====================================================
 
         async function sendVoiceRecording() {
             if (audioChunks.length === 0) return;
             
             try {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                
-                // CORRECTION : Utiliser 'auto' au lieu de 'video' pour Cloudinary
                 const result = await uploadToCloudinary(audioBlob, 'auto');
                 
                 const message = {
@@ -2279,12 +2876,12 @@
                     mediaUrl: result.secure_url,
                     mediaType: 'audio',
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'sent'
+                    status: 'sent',
+                    readBy: [currentUser.uid]
                 };
                 
                 await db.collection('chats').doc(currentChat.id).collection('messages').add(message);
                 
-                // Mettre à jour le dernier message
                 await db.collection('chats').doc(currentChat.id).update({
                     lastMessage: '🎤 Message audio',
                     lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
@@ -2297,15 +2894,6 @@
             } finally {
                 resetVoiceRecorder();
             }
-        }
-
-        function showVoicePreview() {
-            elements.voiceRecorder.classList.add('hidden');
-            elements.voicePreview.classList.remove('hidden');
-            
-            // Créer l'audio pour la prévisualisation
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            audioPreview = URL.createObjectURL(audioBlob);
         }
 
         function toggleAudioPreview() {
@@ -2341,8 +2929,6 @@
             
             try {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                
-                // CORRECTION : Utiliser 'auto' au lieu de 'video' pour Cloudinary
                 const result = await uploadToCloudinary(audioBlob, 'auto');
                 
                 const message = {
@@ -2350,12 +2936,12 @@
                     mediaUrl: result.secure_url,
                     mediaType: 'audio',
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'sent'
+                    status: 'sent',
+                    readBy: [currentUser.uid]
                 };
                 
                 await db.collection('chats').doc(currentChat.id).collection('messages').add(message);
                 
-                // Mettre à jour le dernier message
                 await db.collection('chats').doc(currentChat.id).update({
                     lastMessage: '🎤 Message audio',
                     lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
@@ -2372,25 +2958,18 @@
             }
         }
 
-        // =====================================================
-        // ÉDITEUR DE MÉDIA AVEC OUTILS AVANCÉS
-        // =====================================================
-
         async function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
             
-            // Vérifier le type de fichier
             if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
                 showToast('Type de fichier non supporté', 'error');
                 return;
             }
             
-            // Pour les images, ouvrir l'éditeur
             if (file.type.startsWith('image/')) {
                 openMediaEditor(file);
             } else {
-                // Pour les vidéos, upload directement
                 try {
                     const resourceType = file.type.startsWith('video/') ? 'video' : 'auto';
                     const result = await uploadToCloudinary(file, resourceType);
@@ -2400,7 +2979,8 @@
                         mediaUrl: result.secure_url,
                         mediaType: resourceType,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        status: 'sent'
+                        status: 'sent',
+                        readBy: [currentUser.uid]
                     };
                     
                     await db.collection('chats').doc(currentChat.id).collection('messages').add(message);
@@ -2412,7 +2992,6 @@
                 }
             }
             
-            // Réinitialiser l'input
             event.target.value = '';
         }
 
@@ -2422,7 +3001,6 @@
                 elements.mediaPreview.src = e.target.result;
                 elements.mediaEditorModal.classList.remove('hidden');
                 
-                // Redimensionner le canvas
                 const img = new Image();
                 img.onload = function() {
                     elements.drawingCanvas.width = img.width;
@@ -2457,7 +3035,6 @@
         }
 
         function activateCropTool() {
-            // Implémentation basique du recadrage
             showToast('Fonction de recadrage activée', 'info');
             elements.textInputContainer.classList.add('hidden');
             elements.filterContainer.classList.add('hidden');
@@ -2510,13 +3087,11 @@
             const canvas = elements.drawingCanvas;
             const ctx = canvas.getContext('2d');
             
-            // Réappliquer l'image originale
             const img = new Image();
             img.onload = function() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0);
                 
-                // Appliquer le filtre
                 switch (filter) {
                     case 'grayscale':
                         ctx.globalCompositeOperation = 'saturation';
@@ -2530,7 +3105,6 @@
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
                         ctx.globalCompositeOperation = 'source-over';
                         break;
-                    // Ajouter d'autres filtres ici
                 }
             };
             img.src = elements.mediaPreview.src;
@@ -2540,7 +3114,6 @@
             const ctx = elements.drawingCanvas.getContext('2d');
             ctx.clearRect(0, 0, elements.drawingCanvas.width, elements.drawingCanvas.height);
             
-            // Redessiner l'image originale
             const img = new Image();
             img.onload = function() {
                 ctx.drawImage(img, 0, 0);
@@ -2548,21 +3121,17 @@
             img.src = elements.mediaPreview.src;
         }
 
-        function updateDrawingColor() {
-            // La couleur est automatiquement utilisée dans la fonction draw
-        }
+        function updateDrawingColor() {}
 
         async function sendEditedMedia() {
             if (!currentMediaFile) return;
             
             try {
-                // Fusionner l'image et le canvas
                 const canvas = document.createElement('canvas');
                 canvas.width = elements.drawingCanvas.width;
                 canvas.height = elements.drawingCanvas.height;
                 const ctx = canvas.getContext('2d');
                 
-                // Dessiner l'image originale
                 const img = new Image();
                 await new Promise((resolve) => {
                     img.onload = resolve;
@@ -2570,17 +3139,14 @@
                 });
                 ctx.drawImage(img, 0, 0);
                 
-                // Dessiner les annotations
                 ctx.drawImage(elements.drawingCanvas, 0, 0);
                 
-                // Ajouter le texte s'il existe
                 if (elements.textInput.value.trim()) {
                     ctx.font = '24px Arial';
                     ctx.fillStyle = elements.drawingColor.value;
                     ctx.fillText(elements.textInput.value, 20, 40);
                 }
                 
-                // Convertir en blob et upload
                 canvas.toBlob(async (blob) => {
                     const editedFile = new File([blob], currentMediaFile.name, { type: currentMediaFile.type });
                     const result = await uploadToCloudinary(editedFile, 'image');
@@ -2590,7 +3156,8 @@
                         mediaUrl: result.secure_url,
                         mediaType: 'image',
                         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        status: 'sent'
+                        status: 'sent',
+                        readBy: [currentUser.uid]
                     };
                     
                     await db.collection('chats').doc(currentChat.id).collection('messages').add(message);
@@ -2611,63 +3178,6 @@
             link.download = 'image-editee.png';
             link.href = canvas.toDataURL();
             link.click();
-        }
-
-        // =====================================================
-        // FONCTIONNALITÉS AVANCÉES DES MESSAGES - NOUVEAU MENU CONTEXTUEL
-        // =====================================================
-
-        let currentContextMessage = null;
-        let currentContextMessageId = null;
-        let currentContextIsCurrentUser = null;
-
-        function showMessageContextMenuNew(event, message, messageId, isCurrentUser) {
-            currentContextMessage = message;
-            currentContextMessageId = messageId;
-            currentContextIsCurrentUser = isCurrentUser;
-            
-            // Mettre en surbrillance le message
-            const messageElement = document.getElementById(`message-${messageId}`);
-            if (messageElement) {
-                messageElement.classList.add('message-highlighted');
-            }
-            
-            // Afficher le menu contextuel
-            elements.messageContextOverlay.classList.remove('hidden');
-            
-            // Masquer les options conditionnelles
-            const menuItems = elements.messageContextOverlay.querySelectorAll('.message-context-item');
-            
-            menuItems.forEach(item => {
-                const action = item.dataset.action;
-                
-                // Masquer les options selon le contexte
-                if (action === 'edit' && (!isCurrentUser || !canMessageBeEdited(message.timestamp))) {
-                    item.style.display = 'none';
-                } else if (action === 'download' && !message.mediaUrl) {
-                    item.style.display = 'none';
-                } else if (action === 'copy' && !message.text) {
-                    item.style.display = 'none';
-                } else {
-                    item.style.display = 'flex';
-                }
-            });
-        }
-
-        function hideMessageContextMenu() {
-            elements.messageContextOverlay.classList.add('hidden');
-            
-            // Retirer la surbrillance du message
-            if (currentContextMessageId) {
-                const messageElement = document.getElementById(`message-${currentContextMessageId}`);
-                if (messageElement) {
-                    messageElement.classList.remove('message-highlighted');
-                }
-            }
-            
-            currentContextMessage = null;
-            currentContextMessageId = null;
-            currentContextIsCurrentUser = null;
         }
 
         function handleMessageActionNew(action) {
@@ -2709,7 +3219,7 @@
             
             const messageTime = timestamp.toDate().getTime();
             const currentTime = new Date().getTime();
-            const tenMinutes = 10 * 60 * 1000; // 10 minutes en millisecondes
+            const tenMinutes = 10 * 60 * 1000;
             
             return (currentTime - messageTime) < tenMinutes;
         }
@@ -2725,7 +3235,6 @@
             elements.replyMessageText.textContent = message.text;
             elements.replyIndicator.classList.remove('hidden');
             
-            // Focus sur l'input
             elements.messageInput.focus();
         }
 
@@ -2737,7 +3246,6 @@
         function editMessage(message, messageId) {
             elements.messageInput.value = message.text;
             elements.messageInput.focus();
-            // Implémenter la logique de mise à jour du message
         }
 
         async function deleteMessage(messageId) {
@@ -2750,10 +3258,6 @@
                 showToast('Erreur lors de la suppression: ' + error.message, 'error');
             }
         }
-
-        // =====================================================
-        // FONCTIONNALITÉS DES GROUPES - CORRECTION REDIRECTION
-        // =====================================================
 
         function showCreateGroupModal() {
             elements.createGroupModal.classList.remove('hidden');
@@ -2777,13 +3281,11 @@
             try {
                 let photoURL = '';
                 
-                // Upload de la photo si elle existe
                 if (elements.groupPhoto.files[0]) {
                     const result = await uploadToCloudinary(elements.groupPhoto.files[0], 'image');
                     photoURL = result.secure_url;
                 }
                 
-                // Créer le groupe dans Firestore
                 const groupRef = await db.collection('groups').add({
                     name: name,
                     description: description,
@@ -2798,7 +3300,6 @@
                 showToast('Groupe créé avec succès', 'success');
                 hideCreateGroupModal();
                 
-                // Rediriger immédiatement vers le chat du groupe
                 await openGroupChat(groupRef.id, name);
                 
             } catch (error) {
@@ -2813,13 +3314,9 @@
                     name: groupName
                 };
                 
-                // Masquer la vue des groupes
                 elements.groupsView.classList.add('hidden');
-                
-                // Afficher la vue de chat de groupe
                 elements.groupChatView.classList.remove('translate-x-full');
                 
-                // Charger les messages du groupe
                 loadGroupMessages(groupId);
                 
                 showToast(`Ouverture du groupe ${groupName}`, 'success');
@@ -2829,40 +3326,31 @@
             }
         }
 
-        // PHASE 1 - CORRECTION : Implémentation de loadGroupMessages
         function loadGroupMessages(groupId) {
             if (!groupId) return;
             
-            // Vider le conteneur avant de charger de nouveaux messages
             const messagesContainer = elements.groupChatView.querySelector('#messages-container');
             if (messagesContainer) {
                 messagesContainer.innerHTML = '';
             }
             
-            // Nettoyer l'ancien listener s'il existe
             if (unsubscribeGroupMessagesListener) {
                 unsubscribeGroupMessagesListener();
             }
             
-            // Mettre en place un écouteur Firestore sur la collection messages du groupe
             unsubscribeGroupMessagesListener = db.collection('groups').doc(groupId).collection('messages')
                 .orderBy('timestamp', 'asc')
                 .onSnapshot(snapshot => {
-                    // Vider le conteneur seulement au premier chargement
                     if (messagesContainer) {
-                        // Ne pas vider à chaque changement, mais gérer les modifications
                         snapshot.docChanges().forEach(change => {
                             if (change.type === 'added') {
-                                // Vérifier si le message n'est pas déjà affiché
                                 const messageElement = document.getElementById(`group-message-${change.doc.id}`);
                                 if (!messageElement) {
                                     displayGroupMessage(change.doc.data(), change.doc.id);
                                 }
                             } else if (change.type === 'modified') {
-                                // Mettre à jour le message existant
                                 updateGroupMessage(change.doc.data(), change.doc.id);
                             } else if (change.type === 'removed') {
-                                // Supprimer le message
                                 removeGroupMessage(change.doc.id);
                             }
                         });
@@ -2922,10 +3410,8 @@
                 `;
             }
             
-            // Afficher le nom de l'expéditeur pour les messages des autres
             let senderName = '';
             if (!isCurrentUser) {
-                // Récupérer le nom de l'utilisateur
                 db.collection('users').doc(message.senderId).get().then(doc => {
                     if (doc.exists) {
                         const user = doc.data();
@@ -2977,7 +3463,6 @@
             const file = event.target.files[0];
             if (!file) return;
             
-            // Ici, vous pouvez afficher un aperçu de la photo
             showToast('Photo sélectionnée', 'info');
         }
 
@@ -3006,7 +3491,6 @@
                     return;
                 }
                 
-                // Utiliser un Set pour éviter les doublons
                 const displayedGroups = new Set();
                 
                 snapshot.forEach(doc => {
@@ -3061,10 +3545,6 @@
             }
         }
 
-        // =====================================================
-        // RECHERCHE DE MESSAGES DANS LE CHAT
-        // =====================================================
-
         function showChatInfoPanel() {
             elements.chatInfoPanel.classList.remove('translate-x-full');
             loadChatInfo();
@@ -3077,7 +3557,6 @@
         function loadChatInfo() {
             if (!currentChat) return;
             
-            // Charger les informations du chat
             elements.chatInfoContent.innerHTML = `
                 <div class="glass rounded-2xl p-4 mb-4">
                     <div class="flex items-center space-x-3 mb-4">
@@ -3112,7 +3591,6 @@
                     return;
                 }
                 
-                // Utiliser un Set pour éviter les doublons
                 const displayedMessages = new Set();
                 
                 snapshot.forEach(doc => {
@@ -3131,7 +3609,6 @@
             const div = document.createElement('div');
             div.className = 'glass rounded-xl p-3 cursor-pointer hover:bg-white dark:hover:bg-gray-700 transition-colors duration-200';
             
-            // Mettre en évidence le terme de recherche
             let highlightedText = message.text;
             const regex = new RegExp(query, 'gi');
             highlightedText = highlightedText.replace(regex, match => 
@@ -3144,7 +3621,6 @@
             `;
             
             div.addEventListener('click', () => {
-                // Faire défiler jusqu'au message dans le chat
                 hideChatInfoPanel();
                 scrollToMessage(messageId);
             });
@@ -3157,86 +3633,10 @@
             if (messageElement) {
                 messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 
-                // Ajouter un effet de surbrillance temporaire
                 messageElement.classList.add('bg-yellow-100', 'dark:bg-yellow-900');
                 setTimeout(() => {
                     messageElement.classList.remove('bg-yellow-100', 'dark:bg-yellow-900');
                 }, 2000);
-            }
-        }
-
-        // =====================================================
-        // APPELS WEBRTC
-        // =====================================================
-
-        async function startCall(type) {
-            if (!currentChat) return;
-            
-            try {
-                // Obtenir le flux média local
-                localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: true,
-                    video: type === 'video'
-                });
-                
-                // Créer la connexion peer
-                peerConnection = new RTCPeerConnection(ICE_SERVERS);
-                
-                // Ajouter les tracks locaux
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-                
-                // Gérer les streams distants
-                peerConnection.ontrack = (event) => {
-                    remoteStream = event.streams[0];
-                    elements.remoteVideo.srcObject = remoteStream;
-                };
-                
-                // Créer l'offre
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                
-                // Créer le document d'appel dans Firestore
-                currentCallDoc = db.collection('calls').doc();
-                await currentCallDoc.set({
-                    offer: offer,
-                    from: currentUser.uid,
-                    to: currentChat.otherUserId,
-                    type: type,
-                    status: 'calling',
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // Écouter les candidats ICE
-                peerConnection.onicecandidate = (event) => {
-                    if (event.candidate) {
-                        currentCallDoc.collection('callerCandidates').add(event.candidate.toJSON());
-                    }
-                };
-                
-                // Écouter la réponse
-                currentCallDoc.collection('calleeCandidates').onSnapshot(snapshot => {
-                    snapshot.docChanges().forEach(change => {
-                        if (change.type === 'added') {
-                            const candidate = new RTCIceCandidate(change.doc.data());
-                            peerConnection.addIceCandidate(candidate);
-                        }
-                    });
-                });
-                
-                currentCallDoc.onSnapshot(async (doc) => {
-                    const data = doc.data();
-                    if (data.answer && peerConnection.signalingState !== 'stable') {
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                    }
-                });
-                
-                // Afficher l'interface d'appel
-                showCallInterface(type);
-                
-            } catch (error) {
-                showToast('Erreur lors du démarrage de l\'appel: ' + error.message, 'error');
             }
         }
 
@@ -3263,7 +3663,18 @@
                 currentCallDoc = null;
             }
             
+            if (callStatusListener) {
+                callStatusListener();
+                callStatusListener = null;
+            }
+            
+            if (callTimeout) {
+                clearTimeout(callTimeout);
+                callTimeout = null;
+            }
+            
             elements.callInterface.classList.add('hidden');
+            elements.volumeSliderContainer.classList.add('hidden');
         }
 
         function toggleMute() {
@@ -3280,7 +3691,6 @@
             }
         }
 
-        // Écouter les appels entrants
         function setupIncomingCallsListener() {
             unsubscribeCallsListener = db.collection('calls')
                 .where('to', '==', currentUser.uid)
@@ -3298,62 +3708,25 @@
             const callData = callDoc.data();
             currentCallDoc = callDoc.ref;
             
-            elements.incomingCallName.textContent = 'Appel entrant';
+            // Récupérer le nom de l'appelant
+            db.collection('users').doc(callData.from).get().then(userDoc => {
+                if (userDoc.exists) {
+                    const user = userDoc.data();
+                    elements.incomingCallName.textContent = user.username;
+                }
+            });
+            
             elements.incomingCallType.textContent = callData.type === 'video' ? 'Appel vidéo' : 'Appel audio';
             elements.incomingCall.classList.remove('hidden');
-        }
-
-        async function acceptIncomingCall() {
-            elements.incomingCall.classList.add('hidden');
             
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: true,
-                    video: currentCallDoc.data().type === 'video'
-                });
+            // Délai d'expiration pour l'appel entrant
+            setTimeout(() => {
+                if (elements.incomingCall.classList.contains('hidden')) return;
                 
-                peerConnection = new RTCPeerConnection(ICE_SERVERS);
-                
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-                
-                peerConnection.ontrack = (event) => {
-                    remoteStream = event.streams[0];
-                    elements.remoteVideo.srcObject = remoteStream;
-                };
-                
-                const callData = currentCallDoc.data();
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.offer));
-                
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                
-                await currentCallDoc.update({
-                    answer: answer,
-                    status: 'in-progress'
-                });
-                
-                peerConnection.onicecandidate = (event) => {
-                    if (event.candidate) {
-                        currentCallDoc.collection('calleeCandidates').add(event.candidate.toJSON());
-                    }
-                };
-                
-                currentCallDoc.collection('callerCandidates').onSnapshot(snapshot => {
-                    snapshot.docChanges().forEach(change => {
-                        if (change.type === 'added') {
-                            const candidate = new RTCIceCandidate(change.doc.data());
-                            peerConnection.addIceCandidate(candidate);
-                        }
-                    });
-                });
-                
-                showCallInterface(callData.type);
-                
-            } catch (error) {
-                showToast('Erreur lors de l\'acceptation de l\'appel: ' + error.message, 'error');
-            }
+                currentCallDoc.update({ status: 'missed' });
+                elements.incomingCall.classList.add('hidden');
+                showToast('Appel manqué', 'info');
+            }, 60000);
         }
 
         function declineIncomingCall() {
@@ -3363,10 +3736,6 @@
             }
             elements.incomingCall.classList.add('hidden');
         }
-
-        // =====================================================
-        // FONCTIONS UTILITAIRES
-        // =====================================================
 
         function uploadToCloudinary(file, resourceType) {
             return new Promise((resolve, reject) => {
@@ -3402,7 +3771,6 @@
         }
 
         function openImageModal(url) {
-            // Implémentation basique d'une modale d'image
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center';
             modal.innerHTML = `
@@ -3418,7 +3786,6 @@
             `;
             document.body.appendChild(modal);
             
-            // Fermer la modale en cliquant à l'extérieur
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.remove();
@@ -3482,36 +3849,17 @@
             elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
         }
 
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        // =====================================================
-        // ÉCOUTEURS EN TEMPS RÉEL
-        // =====================================================
-
         function setupRealtimeListeners() {
             if (!currentUser) return;
             
-            // Mettre à jour le statut en ligne
             db.collection('users').doc(currentUser.uid).update({
                 isOnline: true,
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp()
             });
             
-            // Écouter les changements de statut des utilisateurs
             unsubscribeUsersListener = db.collection('users').onSnapshot(snapshot => {
                 snapshot.docChanges().forEach(change => {
                     if (change.type === 'modified') {
-                        // Mettre à jour les statuts en temps réel
                         const user = change.doc.data();
                         if (currentChat && currentChat.otherUserId === user.uid) {
                             elements.chatUserStatus.textContent = user.isOnline ? 'En ligne' : 'Hors ligne';
@@ -3520,10 +3868,8 @@
                 });
             });
             
-            // Écouter les appels entrants
             setupIncomingCallsListener();
             
-            // Mettre à jour le statut hors ligne lors de la fermeture
             window.addEventListener('beforeunload', () => {
                 if (currentUser) {
                     db.collection('users').doc(currentUser.uid).update({
@@ -3532,82 +3878,8 @@
                     });
                 }
                 
-                // Nettoyer tous les listeners
                 cleanupListeners();
             });
-        }
-
-        // =====================================================
-        // FONCTIONS DE CHARGEMENT DES DONNÉES
-        // =====================================================
-
-        async function loadChatsList() {
-            if (!currentUser) return;
-            
-            try {
-                const snapshot = await db.collection('chats')
-                    .where('participants', 'array-contains', currentUser.uid)
-                    .orderBy('lastMessageTime', 'desc')
-                    .get();
-                
-                // Vider le conteneur avant d'ajouter de nouveaux éléments
-                elements.chatsList.innerHTML = '';
-                
-                if (snapshot.empty) {
-                    elements.chatsList.innerHTML = `
-                        <div class="text-center py-8">
-                            <i class="fas fa-comments text-4xl text-gray-300 mb-4"></i>
-                            <p class="text-gray-500 dark:text-gray-400">Aucune conversation</p>
-                            <p class="text-sm text-gray-400 dark:text-gray-500">Commencez une nouvelle conversation en recherchant un utilisateur</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                // Utiliser un Set pour éviter les doublons
-                const displayedChats = new Set();
-                
-                for (const doc of snapshot.docs) {
-                    if (displayedChats.has(doc.id)) continue;
-                    
-                    displayedChats.add(doc.id);
-                    const chat = doc.data();
-                    const otherUserId = chat.participants.find(id => id !== currentUser.uid);
-                    const userDoc = await db.collection('users').doc(otherUserId).get();
-                    
-                    if (userDoc.exists) {
-                        const user = userDoc.data();
-                        const chatItem = createChatListItem(chat, user);
-                        elements.chatsList.appendChild(chatItem);
-                    }
-                }
-                
-            } catch (error) {
-                console.error('Erreur lors du chargement des conversations:', error);
-            }
-        }
-
-        function createChatListItem(chat, user) {
-            const div = document.createElement('div');
-            div.className = 'glass rounded-2xl p-4 flex items-center space-x-3 cursor-pointer hover:bg-white dark:hover:bg-gray-700 transition-colors duration-200';
-            div.innerHTML = `
-                <img src="${user.photoURL || 'https://via.placeholder.com/50'}" alt="${user.username}" class="w-12 h-12 rounded-xl">
-                <div class="flex-1">
-                    <h3 class="font-semibold text-gray-800 dark:text-white">${user.username}</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 truncate">${chat.lastMessage || 'Aucun message'}</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-xs text-gray-500 dark:text-gray-400">${formatTime(chat.lastMessageTime)}</p>
-                    <div class="w-3 h-3 rounded-full ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'} mt-1"></div>
-                </div>
-            `;
-            
-            div.addEventListener('click', () => openChatWithUser(user.uid, user.username));
-            return div;
-        }
-
-        async function loadCallsHistory() {
-            // Implémentation de l'historique des appels
         }
 
         async function loadGroupsList() {
@@ -3619,7 +3891,6 @@
                     .orderBy('lastMessageTime', 'desc')
                     .get();
                 
-                // Vider le conteneur avant d'ajouter de nouveaux éléments
                 elements.groupsList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -3633,7 +3904,6 @@
                     return;
                 }
                 
-                // Utiliser un Set pour éviter les doublons
                 const displayedGroups = new Set();
                 
                 snapshot.forEach(doc => {
